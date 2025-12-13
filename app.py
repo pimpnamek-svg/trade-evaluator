@@ -179,14 +179,14 @@ def home():
                     grade = "Skip"
 
 
-      except Exception as e:
-          direction = "Error"
-          distance = 0
-          regime = "Error"
-          tqi = 0
-          grade = f"ERROR: {e}"
-          volume_state = "Error"
-          volume_ratio = 0
+                except Exception as e:
+                    direction = "Error"
+                    distance = 0
+                    regime = "Error"
+                    tqi = 0
+                    grade = f"ERROR: {e}"
+                    volume_state = "Error"
+                    volume_ratio = 0
               
         result = (
             f"Trend: {direction} ({regime})<br>"
