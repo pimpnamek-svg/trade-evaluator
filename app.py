@@ -44,6 +44,26 @@ def home():
     result = None
     ticker = None
 
+    if request.method == "POST":
+        ticker = request.form.get("ticker", "").upper()
+
+        try:
+            trend = get_trend(f"{ticker}/USDT")
+        except Exception as e:
+            trend = f"Error fetching data"
+
+        result = (
+            f"Trend: {trend}<br>"
+            "Trade Quality Index: TBD<br>"
+            "Stop Loss: TBD<br>"
+            "TP1 (1R): TBD<br>"
+            "TP2 (2R): TBD<br>"
+            "TP3 (3R): TBD"
+        )
+
+    return render_template_string(HTML, result=result, ticker=ticker)
+
+
     import ccxt
 import pandas as pd
 
@@ -62,17 +82,7 @@ def get_trend(symbol):
         return "Bearish"
     else:
         return "No Trend"
-     trend = get_trend(f"{ticker}/USDT")
-
-result = (
-    f"Trend: {trend}<br>"
-    "Trade Quality Index: TBD<br>"
-    "Stop Loss: TBD<br>"
-    "TP1 (1R): TBD<br>"
-    "TP2 (2R): TBD<br>"
-    "TP3 (3R): TBD"
-)
-
+   
     return render_template_string(HTML, result=result, ticker=ticker)
 
 if __name__ == "__main__":
