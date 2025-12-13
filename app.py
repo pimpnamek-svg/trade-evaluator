@@ -169,7 +169,12 @@ def home():
 
 
                 # ---- Execution (ONLY if trade allowed) ----
-                if grade != "Skip" and atr is not None:
+                 if (grade.startswith("A") or grade.startswith("B")) and atr is not None:
+                    risk = atr * 1.5
+                    ...
+                 else:
+                    entry = stop_loss = tp1 = tp2 = tp3 = "N/A"
+
                     risk = atr * 1.5
 
                     if direction == "Bullish":
