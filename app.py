@@ -148,6 +148,10 @@ def home():
                     volume_state = "Moderate"
                 else:
                     volume_state = "Weak"
+                if tqi >= 85 and volume_state == "Weak":
+                    grade = "Skip"
+                if regime == "Chop":
+                    grade = "Skip"
 
                 # Grade
                 if tqi >= 85:
