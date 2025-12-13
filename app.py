@@ -45,7 +45,7 @@ def home():
     ticker = None
 
     if request.method == "POST":
-        ticker = request.form.get("ticker", 
+        ticker = request.form.get("ticker", "")
         result = (
             "Trend: Bullish<br>"
             "Trade Quailty Index: A <br>"
