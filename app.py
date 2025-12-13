@@ -29,13 +29,22 @@ def get_trend(symbol):
 
     df["sma30"] = df["close"].rolling(30).mean()
     df["sma50"] = df["close"].rolling(50).mean()
+    
+    distance = abs(df["sma30"].iloc[-1] - df["sma50"].iloc[-1]) / df["close"].iloc[-1]
 
     if df["sma30"].iloc[-1] > df["sma50"].iloc[-1]:
-        return "Bullish"
+        if distance > 0.01:
+            return "Bullish (Strong)"
+        else:
+            return "Bullish (Weak)"
     elif df["sma30"].iloc[-1] < df["sma50"].iloc[-1]:
-        return "Bearish"
+        if distance > 0.01:
+            return "Bearish (Strong)"
+        else:
+            return "Bearish (Weak)"
     else:
         return "No Trend"
+
 
 # --------------------
 # HTML
