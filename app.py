@@ -91,80 +91,82 @@ def home():
     if request.method == "POST":
         ticker = request.form.get("ticker", "").upper()
 
-    try:
-       symbol = f"{ticker}/USDT"
+        try:
+            symbol = f"{ticker}/USDT"
 
-    if exchange.symbols is None or symbol not in exchange.symbols:
-        direction = "N/A"
-        distance = 0
-        regime = "N/A"
-        tqi = 0
-        grade = "N/A"
-        volume_state = "N/A"
-        volume_ratio = 0
+            if exchange.symbols is None or symbol not in exchange.symbols:
+                direction = "N/A"
+                distance = 0
+                regime = "N/A"
+                tqi = 0
+                grade = "N/A"
+                volume_state = "N/A"
+                volume_ratio = 0
 
-    else:
-        trend_data = get_trend(symbol)
+            else:
+                trend_data = get_trend(symbol)
 
-        direction = trend_data["direction"]
-        distance = trend_data["distance"]
-        current_volume = trend_data["current_volume"]
-        avg_volume = trend_data["avg_volume"]
+                direction = trend_data["direction"]
+                distance = trend_data["distance"]
+                current_volume = trend_data["current_volume"]
+                avg_volume = trend_data["avg_volume"]
 
-        volume_ratio = current_volume / avg_volume if avg_volume else 0
+                volume_ratio = current_volume / avg_volume if avg_volume else 0
 
-        # ---- TQI scoring ----
-        tqi = 0
+                # ---- TQI scoring ----
+                tqi = 0
 
-        # Trend direction
-        if direction in ["Bullish", "Bearish"]:
-            tqi += 40
+                # Trend direction
+                if direction in ["Bullish", "Bearish"]:
+                    tqi += 40
 
-        # Trend strength
-        if distance >= 0.01:
-            tqi += 40
-            regime = "Expansion"
-        elif distance >= 0.005:
-            tqi += 30
-            regime = "Healthy"
-        elif distance >= 0.002:
-            tqi += 15
-            regime = "Weak"
-        else:
-            regime = "Chop"
+                # Trend strength
+                if distance >= 0.01:
+                    tqi += 40
+                    regime = "Expansion"
+                elif distance >= 0.005:
+                    tqi += 30
+                    regime = "Healthy"
+                elif distance >= 0.002:
+                    tqi += 15
+                    regime = "Weak"
+                else:
+                    regime = "Chop"
 
-        # Regime bonus
-        if regime in ["Expansion", "Healthy"]:
-            tqi += 20
-        elif regime == "Weak":
-            tqi += 10
+                # Regime bonus
+                if regime in ["Expansion", "Healthy"]:
+                    tqi += 20
+                elif regime == "Weak":
+                    tqi += 10
 
-        # ---- Volume scoring ----
-        if volume_ratio >= 1.5:
-            tqi += 20
-            volume_state = "Strong"
-        elif volume_ratio >= 1.2:
-            tqi += 10
-            volume_state = "Moderate"
-        else:
-            volume_state = "Weak"
+                # ---- Volume scoring ----
+                if volume_ratio >= 1.5:
+                    tqi += 20
+                    volume_state = "Strong"
+                elif volume_ratio >= 1.2:
+                    tqi += 10
+                    volume_state = "Moderate"
+                else:
+                    volume_state = "Weak"
 
-        # Grade
-        if tqi >= 80:
-            grade = "A (Trade)"
-        elif tqi >= 65:
-            grade = "B (Trade)"
-        elif tqi >= 50:
-            grade = "C (Caution)"
-        else:
-            grade = "D (Skip)"
-   
+                # Grade
+                if tqi >= 80:
+                    grade = "A (Trade)"
+                elif tqi >= 65:
+                    grade = "B (Trade)"
+                elif tqi >= 50:
+                    grade = "C (Caution)"
+                else:
+                    grade = "D (Skip)"
+
         except Exception as e:
             direction = "Error"
             distance = 0
             regime = "Error"
             tqi = 0
             grade = str(e)
+            volume_state = "Error"
+            volume_ratio = 0
 
         result = (
             f"Trend: {direction} ({regime})<br>"
