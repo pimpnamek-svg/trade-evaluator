@@ -30,12 +30,10 @@ def get_trend(symbol):
     df["sma30"] = df["close"].rolling(30).mean()
     df["sma50"] = df["close"].rolling(50).mean()
     
-    distance = abs(df["sma30"].iloc[-1] - df["sma50"].iloc[-1]) / df["close"].iloc[-1]
-
     sma30 = df["sma30"].iloc[-1]
     sma50 = df["sma50"].iloc[-1]
     price = df["close"].iloc[-1]
-
+    
     distance = abs(sma30 - sma50) / price
 
     return f"SMA30={sma30:.2f}, SMA50={sma50:.2f}, Dist={distance:.4f}"
