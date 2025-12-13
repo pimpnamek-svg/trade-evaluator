@@ -1,7 +1,9 @@
-from flask import Flask
-import yfinance as yf 
+from flask import Flask, request, render_template_string
+import os
+import ccxt
 import pandas as pd
-import requests
+
+exchange = ccxt.okx()
 
 app = Flask(__name__)
 
