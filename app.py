@@ -152,6 +152,9 @@ def home():
                     grade = "Skip"
                 if regime == "Chop":
                     grade = "Skip"
+                # ---- High conviction volume requirement ----
+                if volume_state == "Weak" and tqi >= 85:
+                    grade = "B (Reduced Size)"
 
                 # Grade
                 if tqi >= 85:
