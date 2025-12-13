@@ -157,15 +157,16 @@ def home():
                 else:
                     volume_state = "Weak"
 
-                # ---- FINAL GRADE (hard volume filter) ----
+               # ---- FINAL GRADE (with Watch state) ----
                 if volume_state == "Weak":
-                    grade = "Skip"
+                    grade = "Watch (No Volume)"
                 elif tqi >= 85:
                     grade = "A (High Conviction)"
                 elif tqi >= 70:
                     grade = "B (Reduced Size)"
                 else:
                     grade = "Skip"
+
 
                 # ---- Execution (ONLY if trade allowed) ----
                 if grade != "Skip" and atr is not None:
