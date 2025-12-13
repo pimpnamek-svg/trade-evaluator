@@ -3,48 +3,67 @@ import os
 import ccxt
 import pandas as pd
 
+# --------------------
+# App setup
+# --------------------
+app = Flask(__name__)
+
+# --------------------
+# Exchange setup
+# --------------------
 exchange = ccxt.okx({
     "enableRateLimit": True
 })
 exchange.load_markets()
 
+# --------------------
+# Helper functions
+# --------------------
+def get_trend(symbol):
+    ohlcv = exchange.fetch_ohlcv(symbol, timeframe="4h", limit=60)
 
-app = Flask(__name__)
+    df = pd.DataFrame(
+        ohlcv,
+        columns=["time", "open", "high", "low", "close", "volume"]
+    )
 
-from flask import Flask, request, render_template_string
+    df["sma30"] = df["close"].rolling(30).mean()
+    df["sma50"] = df["close"].rolling(50).mean()
 
-app = Flask(__name__)
+    if df["sma30"].iloc[-1] > df["sma50"].iloc[-1]:
+        return "Bullish"
+    elif df["sma30"].iloc[-1] < df["sma50"].iloc[-1]:
+        return "Bearish"
+    else:
+        return "No Trend"
 
+# --------------------
+# HTML
+# --------------------
 HTML = """
 <!DOCTYPE html>
 <html>
 <head>
     <title>Trade Evaluator</title>
-    <style>
-        body { font-family: Arial; padding: 20px; }
-        input { padding: 10px; font-size: 16px; }
-        button { padding: 10px 15px; font-size: 16px; }
-        .result { margin-top: 20px; padding: 15px; border: 1px solid #ccc; }
-    </style>
 </head>
 <body>
     <h2>Trade Evaluator</h2>
 
     <form method="POST">
-        <input name="ticker" placeholder="Enter ticker (BTC, ETH, SOL)" required>
+        <input name="ticker" placeholder="BTC, ETH, SOL" required>
         <button type="submit">Evaluate</button>
     </form>
 
     {% if result %}
-    <div class="result">
-        <strong>Result for {{ ticker }}:</strong><br><br>
-        {{ result }}
-    </div>
+        <p>{{ result|safe }}</p>
     {% endif %}
 </body>
 </html>
 """
 
+# --------------------
+# Route
+# --------------------
 @app.route("/", methods=["GET", "POST"])
 def home():
     result = None
@@ -75,6 +94,12 @@ def home():
 
     return render_template_string(HTML, result=result, ticker=ticker)
 
+# --------------------
+# Run
+# --------------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
 
+
+   
