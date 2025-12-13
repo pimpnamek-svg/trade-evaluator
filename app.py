@@ -102,37 +102,36 @@ def home():
         try:
             symbol = f"{ticker}/USDT"
 
+            # ---- Invalid symbol guard ----
             if exchange.symbols is None or symbol not in exchange.symbols:
                 direction = "N/A"
                 distance = 0
                 regime = "N/A"
                 tqi = 0
-                grade = "N/A"
+                grade = "Skip"
                 volume_state = "N/A"
                 volume_ratio = 0
+                entry = stop_loss = tp1 = tp2 = tp3 = "N/A"
 
             else:
+                # ---- Fetch trend data ----
                 trend_data = get_trend(symbol)
 
                 direction = trend_data["direction"]
                 distance = trend_data["distance"]
                 current_volume = trend_data["current_volume"]
                 avg_volume = trend_data["avg_volume"]
+                price = trend_data["price"]
+                atr = trend_data["atr"]
 
                 volume_ratio = current_volume / avg_volume if avg_volume else 0
-                # ---- ATR (volatility) ----
-                df["prev_close"] = df["close"].shift(1)
-                df["tr"] = df[["high", "low"]].max(axis=1) - df[["low", "prev_close"]].min(axis=1)
-                df["atr14"] = df["tr"].rolling(14).mean()
 
                 # ---- TQI scoring ----
                 tqi = 0
 
-                # Trend direction
                 if direction in ["Bullish", "Bearish"]:
                     tqi += 40
 
-                # Trend strength
                 if distance >= 0.01:
                     tqi += 40
                     regime = "Expansion"
@@ -145,7 +144,6 @@ def home():
                 else:
                     regime = "Chop"
 
-                # Regime bonus
                 if regime in ["Expansion", "Healthy"]:
                     tqi += 20
                 elif regime == "Weak":
@@ -153,22 +151,13 @@ def home():
 
                 # ---- Volume scoring ----
                 if volume_ratio >= 1.5:
-                    tqi += 20
                     volume_state = "Strong"
                 elif volume_ratio >= 1.2:
-                    tqi += 10
                     volume_state = "Moderate"
                 else:
                     volume_state = "Weak"
-                if tqi >= 85 and volume_state == "Weak":
-                    grade = "Skip"
-                if regime == "Chop":
-                    grade = "Skip"
-                # ---- High conviction volume requirement ----
-                if volume_state == "Weak" and tqi >= 85:
-                    grade = "B (Reduced Size)"
 
-                # ---- Final grade (hard volume filter) ----
+                # ---- FINAL GRADE (hard volume filter) ----
                 if volume_state == "Weak":
                     grade = "Skip"
                 elif tqi >= 85:
@@ -178,25 +167,45 @@ def home():
                 else:
                     grade = "Skip"
 
+                # ---- Execution (ONLY if trade allowed) ----
+                if grade != "Skip" and atr is not None:
+                    risk = atr * 1.5
 
-                except Exception as e:
-                    direction = "Error"
-                    distance = 0
-                    regime = "Error"
-                    tqi = 0
-                    grade = f"ERROR: {e}"
-                    volume_state = "Error"
-                    volume_ratio = 0
-              
+                    if direction == "Bullish":
+                        entry = price
+                        stop_loss = entry - risk
+                        tp1 = entry + risk
+                        tp2 = entry + (risk * 2)
+                        tp3 = entry + (risk * 3)
+                    else:
+                        entry = price
+                        stop_loss = entry + risk
+                        tp1 = entry - risk
+                        tp2 = entry - (risk * 2)
+                        tp3 = entry - (risk * 3)
+                else:
+                    entry = stop_loss = tp1 = tp2 = tp3 = "N/A"
+
+        except Exception as e:
+            direction = "Error"
+            distance = 0
+            regime = "Error"
+            tqi = 0
+            grade = f"ERROR: {e}"
+            volume_state = "Error"
+            volume_ratio = 0
+            entry = stop_loss = tp1 = tp2 = tp3 = "N/A"
+
+        # ---- Display ----
         result = (
             f"Trend: {direction} ({regime})<br>"
-            f"Distance: {distance:.4%}<br>"
             f"Volume: {volume_state} ({volume_ratio:.2f}x avg)<br>"
-            f"Trade Quality Index: {tqi} / 100 ({grade})<br>"
-            "Stop Loss: TBD<br>"
-            "TP1 (1R): TBD<br>"
-            "TP2 (2R): TBD<br>"
-            "TP3 (3R): TBD"
+            f"TQI: {tqi} / 100 ({grade})<br><br>"
+            f"Entry: {entry}<br>"
+            f"Stop Loss: {stop_loss}<br>"
+            f"TP1 (1R): {tp1}<br>"
+            f"TP2 (2R): {tp2}<br>"
+            f"TP3 (3R): {tp3}<br>"
         )
 
     return render_template_string(HTML, result=result, ticker=ticker)
