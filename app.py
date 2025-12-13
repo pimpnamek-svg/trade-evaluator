@@ -1,40 +1,62 @@
 from flask import Flask, request, render_template_string
-import os
 import ccxt
 import pandas as pd
 
-# --------------------
-# App setup
-# --------------------
+# ---------------- SETTINGS ----------------
+ATR_MULTIPLIER = 1.5
+TIMEFRAME = "4h"
+LIMIT = 60
+# ------------------------------------------
+
 app = Flask(__name__)
 
-# --------------------
-# Exchange setup
-# --------------------
 exchange = ccxt.okx({
     "enableRateLimit": True
 })
 exchange.load_markets()
 
-# --------------------
-# Helper functions
-# --------------------
+HTML = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Trade Evaluator</title>
+</head>
+<body>
+    <h2>Trade Evaluator</h2>
+    <form method="POST">
+        <input name="ticker" placeholder="BTC, ETH, ADA" required>
+        <button type="submit">Evaluate</button>
+    </form>
+    <hr>
+    {% if result %}
+        <div>{{ result|safe }}</div>
+    {% endif %}
+</body>
+</html>
+"""
+
+# ---------------- DATA ENGINE ----------------
 def get_trend(symbol):
-    ohlcv = exchange.fetch_ohlcv(symbol, timeframe="4h", limit=60)
+    ohlcv = exchange.fetch_ohlcv(symbol, timeframe=TIMEFRAME, limit=LIMIT)
 
     df = pd.DataFrame(
         ohlcv,
         columns=["time", "open", "high", "low", "close", "volume"]
     )
 
+    # Price indicators
     df["sma30"] = df["close"].rolling(30).mean()
     df["sma50"] = df["close"].rolling(50).mean()
 
+    # Volume
     df["vol_avg20"] = df["volume"].rolling(20).mean()
-    
-    # ---- ATR (volatility) ----
+
+    # ATR
     df["prev_close"] = df["close"].shift(1)
-    df["tr"] = df[["high", "low"]].max(axis=1) - df[["low", "prev_close"]].min(axis=1)
+    df["tr"] = (
+        df[["high", "prev_close"]].max(axis=1)
+        - df[["low", "prev_close"]].min(axis=1)
+    )
     df["atr14"] = df["tr"].rolling(14).mean()
 
     sma30 = df["sma30"].iloc[-1]
@@ -43,7 +65,6 @@ def get_trend(symbol):
 
     current_volume = df["volume"].iloc[-1]
     avg_volume = df["vol_avg20"].iloc[-1]
-    
     atr = df["atr14"].iloc[-1]
 
     distance = abs(sma30 - sma50) / price
@@ -56,41 +77,15 @@ def get_trend(symbol):
         direction = "No Trend"
 
     return {
-    "direction": direction,
-    "distance": distance,
-    "current_volume": current_volume,
-    "avg_volume": avg_volume,
-    "atr": atr,
-    "price": price
-}
-  
-# --------------------
-# HTML
-# --------------------
-HTML = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Trade Evaluator</title>
-</head>
-<body>
-    <h2>Trade Evaluator</h2>
+        "direction": direction,
+        "distance": distance,
+        "current_volume": current_volume,
+        "avg_volume": avg_volume,
+        "atr": atr,
+        "price": price
+    }
 
-    <form method="POST">
-        <input name="ticker" placeholder="BTC, ETH, SOL" required>
-        <button type="submit">Evaluate</button>
-    </form>
-
-    {% if result %}
-        <p>{{ result|safe }}</p>
-    {% endif %}
-</body>
-</html>
-"""
-
-# --------------------
-# Route
-# --------------------
+# ---------------- APP LOGIC ----------------
 @app.route("/", methods=["GET", "POST"])
 def home():
     result = None
@@ -102,54 +97,49 @@ def home():
         try:
             symbol = f"{ticker}/USDT"
 
-            # ---- Invalid symbol guard ----
             if exchange.symbols is None or symbol not in exchange.symbols:
-                direction = "N/A"
-                distance = 0
-                regime = "N/A"
-                tqi = 0
-                grade = "Skip"
-                volume_state = "N/A"
-                volume_ratio = 0
-                entry = stop_loss = tp1 = tp2 = tp3 = "N/A"
-
+                result = "Invalid symbol."
             else:
-                # ---- Fetch trend data ----
-                trend_data = get_trend(symbol)
+                data = get_trend(symbol)
 
-                direction = trend_data["direction"]
-                distance = trend_data["distance"]
-                current_volume = trend_data["current_volume"]
-                avg_volume = trend_data["avg_volume"]
-                price = trend_data["price"]
-                atr = trend_data["atr"]
+                direction = data["direction"]
+                distance = data["distance"]
+                price = data["price"]
+                atr = data["atr"]
 
-                volume_ratio = current_volume / avg_volume if avg_volume else 0
+                volume_ratio = (
+                    data["current_volume"] / data["avg_volume"]
+                    if data["avg_volume"]
+                    else 0
+                )
 
-                # ---- TQI scoring ----
+                # ---- Regime ----
+                if distance >= 0.01:
+                    regime = "Expansion"
+                elif distance >= 0.005:
+                    regime = "Healthy"
+                elif distance >= 0.002:
+                    regime = "Weak"
+                else:
+                    regime = "Chop"
+
+                # ---- TQI ----
                 tqi = 0
 
                 if direction in ["Bullish", "Bearish"]:
                     tqi += 40
 
-                if distance >= 0.01:
+                if regime == "Expansion":
                     tqi += 40
-                    regime = "Expansion"
-                elif distance >= 0.005:
+                elif regime == "Healthy":
                     tqi += 30
-                    regime = "Healthy"
-                elif distance >= 0.002:
+                elif regime == "Weak":
                     tqi += 15
-                    regime = "Weak"
-                else:
-                    regime = "Chop"
 
                 if regime in ["Expansion", "Healthy"]:
                     tqi += 20
-                elif regime == "Weak":
-                    tqi += 10
 
-                # ---- Volume scoring ----
+                # ---- Volume ----
                 if volume_ratio >= 1.5:
                     volume_state = "Strong"
                 elif volume_ratio >= 1.2:
@@ -157,7 +147,7 @@ def home():
                 else:
                     volume_state = "Weak"
 
-               # ---- FINAL GRADE (with Watch state) ----
+                # ---- Final Grade ----
                 if volume_state == "Weak":
                     grade = "Watch (No Volume)"
                 elif tqi >= 85:
@@ -167,64 +157,45 @@ def home():
                 else:
                     grade = "Skip"
 
-
-                # ---- Execution (ONLY if trade allowed) ----
-                 if (grade.startswith("A") or grade.startswith("B")) and atr is not None:
-                    risk = atr * 1.5
-                    ...
-                 else:
-                    entry = stop_loss = tp1 = tp2 = tp3 = "N/A"
-
-                    risk = atr * 1.5
+                # ---- Execution ----
+                if grade.startswith("A") or grade.startswith("B"):
+                    risk = atr * ATR_MULTIPLIER
 
                     if direction == "Bullish":
                         entry = price
-                        stop_loss = entry - risk
+                        stop = entry - risk
                         tp1 = entry + risk
-                        tp2 = entry + (risk * 2)
-                        tp3 = entry + (risk * 3)
+                        tp2 = entry + risk * 2
+                        tp3 = entry + risk * 3
                     else:
                         entry = price
-                        stop_loss = entry + risk
+                        stop = entry + risk
                         tp1 = entry - risk
-                        tp2 = entry - (risk * 2)
-                        tp3 = entry - (risk * 3)
+                        tp2 = entry - risk * 2
+                        tp3 = entry - risk * 3
                 else:
-                    entry = stop_loss = tp1 = tp2 = tp3 = "N/A"
+                    entry = stop = tp1 = tp2 = tp3 = "N/A"
+
+                result = (
+                    f"Trend: {direction} ({regime})<br>"
+                    f"Volume: {volume_state} ({volume_ratio:.2f}x avg)<br>"
+                    f"TQI: {tqi} / 100 ({grade})<br><br>"
+                    f"Entry: {entry}<br>"
+                    f"Stop Loss: {stop}<br>"
+                    f"TP1 (1R): {tp1}<br>"
+                    f"TP2 (2R): {tp2}<br>"
+                    f"TP3 (3R): {tp3}<br>"
+                )
 
         except Exception as e:
-            direction = "Error"
-            distance = 0
-            regime = "Error"
-            tqi = 0
-            grade = f"ERROR: {e}"
-            volume_state = "Error"
-            volume_ratio = 0
-            entry = stop_loss = tp1 = tp2 = tp3 = "N/A"
-
-        # ---- Display ----
-        result = (
-            f"Trend: {direction} ({regime})<br>"
-            f"Volume: {volume_state} ({volume_ratio:.2f}x avg)<br>"
-            f"TQI: {tqi} / 100 ({grade})<br><br>"
-            f"Entry: {entry}<br>"
-            f"Stop Loss: {stop_loss}<br>"
-            f"TP1 (1R): {tp1}<br>"
-            f"TP2 (2R): {tp2}<br>"
-            f"TP3 (3R): {tp3}<br>"
-        )
+            result = f"ERROR: {e}"
 
     return render_template_string(HTML, result=result, ticker=ticker)
 
-
-    return render_template_string(HTML, result=result, ticker=ticker)
-
-# --------------------
-# Run
-# --------------------
+# ---------------- RUN ----------------
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=8080)
+
 
 
    
