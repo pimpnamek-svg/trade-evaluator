@@ -45,9 +45,16 @@ def home():
     ticker = None
 
     if request.method == "POST":
-        ticker = request.form["ticker"]. result = ()
-        result = f"Trend: Bullish | Trade Quality: A | Stop: TBD | TP1/TP2/TP3: TBD"
-
+        ticker = request.form.get("ticker", ""). 
+        result = (
+            "Trend: Bullish<br>"
+            "Trade Quailty Index: A <br>"
+            "Stop Loss TBD<br>"
+            "TP1 (1R): TBD<br>"
+            "TP2 (2R): TBD<br>"
+            "TP3 (3R): TBD<br>"
+        )
+     
     return render_template_string(HTML, result=result, ticker=ticker)
 
 if __name__ == "__main__":
