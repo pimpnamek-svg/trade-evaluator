@@ -54,7 +54,7 @@ def home():
         ticker = request.form.get("ticker", "").upper()
 
     try:
-    symbol = f"{ticker}/USDT"
+        symbol = f"{ticker}/USDT"
 
     if exchange.symbols is None or symbol not in exchange.symbols:
         trend = "Pair not available on OKX"
