@@ -62,7 +62,6 @@ def get_trend(symbol):
         return "Bearish"
     else:
         return "No Trend"
-        )
      
     return render_template_string(HTML, result=result, ticker=ticker)
 
