@@ -56,14 +56,13 @@ def get_trend(symbol):
         direction = "No Trend"
 
     return {
-        "direction": direction,
-        "distance": distance,
-        "current_volume": current_volume,
-        "avg_volume": avg_volume
-        "atr": atr, 
-        "price": price,
-       }
-
+    "direction": direction,
+    "distance": distance,
+    "current_volume": current_volume,
+    "avg_volume": avg_volume,
+    "atr": atr,
+    "price": price
+}
   
 # --------------------
 # HTML
