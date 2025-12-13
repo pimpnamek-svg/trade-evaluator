@@ -44,15 +44,24 @@ def home():
     result = None
     ticker = None
 
-    if request.method == "POST":
-        ticker = request.form.get("ticker", "")
-        result = (
-            "Trend: Bullish<br>"
-            "Trade Quailty Index: A <br>"
-            "Stop Loss TBD<br>"
-            "TP1 (1R): TBD<br>"
-            "TP2 (2R): TBD<br>"
-            "TP3 (3R): TBD<br>"
+    import ccxt
+import pandas as pd
+
+exchange = ccxt.okx()
+
+def get_trend(symbol):
+    ohlcv = exchange.fetch_ohlcv(symbol, timeframe='4h', limit=60)
+    df = pd.DataFrame(ohlcv, columns=['time','open','high','low','close','volume'])
+
+    df['sma30'] = df['close'].rolling(30).mean()
+    df['sma50'] = df['close'].rolling(50).mean()
+
+    if df['sma30'].iloc[-1] > df['sma50'].iloc[-1]:
+        return "Bullish"
+    elif df['sma30'].iloc[-1] < df['sma50'].iloc[-1]:
+        return "Bearish"
+    else:
+        return "No Trend"
         )
      
     return render_template_string(HTML, result=result, ticker=ticker)
