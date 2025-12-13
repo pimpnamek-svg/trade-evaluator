@@ -31,6 +31,11 @@ def get_trend(symbol):
     df["sma50"] = df["close"].rolling(50).mean()
 
     df["vol_avg20"] = df["volume"].rolling(20).mean()
+    
+    # ---- ATR (volatility) ----
+    df["prev_close"] = df["close"].shift(1)
+    df["tr"] = df[["high", "low"]].max(axis=1) - df[["low", "prev_close"]].min(axis=1)
+    df["atr14"] = df["tr"].rolling(14).mean()
 
     sma30 = df["sma30"].iloc[-1]
     sma50 = df["sma50"].iloc[-1]
@@ -38,6 +43,8 @@ def get_trend(symbol):
 
     current_volume = df["volume"].iloc[-1]
     avg_volume = df["vol_avg20"].iloc[-1]
+    
+    atr = df["atr14"].iloc[-1]
 
     distance = abs(sma30 - sma50) / price
 
@@ -53,7 +60,9 @@ def get_trend(symbol):
         "distance": distance,
         "current_volume": current_volume,
         "avg_volume": avg_volume
-    }
+        "atr": atr, 
+        "price": price,
+       }
 
   
 # --------------------
@@ -112,6 +121,10 @@ def home():
                 avg_volume = trend_data["avg_volume"]
 
                 volume_ratio = current_volume / avg_volume if avg_volume else 0
+                # ---- ATR (volatility) ----
+                df["prev_close"] = df["close"].shift(1)
+                df["tr"] = df[["high", "low"]].max(axis=1) - df[["low", "prev_close"]].min(axis=1)
+                df["atr14"] = df["tr"].rolling(14).mean()
 
                 # ---- TQI scoring ----
                 tqi = 0
