@@ -156,13 +156,16 @@ def home():
                 if volume_state == "Weak" and tqi >= 85:
                     grade = "B (Reduced Size)"
 
-                # Grade
+                # ---- Final grade (volume-aware) ----
                 if tqi >= 85:
-                    grade = "A (High Conviction)"
-                elif tqi >= 70:
-                    grade = "B (Reduce Size)"
+                if volume_state == "Weak":
+                   grade = "B (Reduced Size)"
                 else:
-                    grade = "Skip"
+                   grade = "A (High Conviction)"
+                elif tqi >= 70:
+                   grade = "B (Reduced Size)"
+                else:
+                   grade = "Skip"
 
         except Exception as e:
             direction = "Error"
