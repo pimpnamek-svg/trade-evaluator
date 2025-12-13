@@ -51,28 +51,28 @@ def home():
     ticker = None
 
     if request.method == "POST":
-        ticker = request.form.get("ticker", "").upper()
+       if request.method == "POST":
+    ticker = request.form.get("ticker", "").upper()
 
     try:
         symbol = f"{ticker}/USDT"
 
-    if exchange.symbols is None or symbol not in exchange.symbols:
-        trend = "Pair not available on OKX"
-    else:
-        trend = get_trend(symbol)
+        if exchange.symbols is None or symbol not in exchange.symbols:
+            trend = "Pair not available on OKX"
+        else:
+            trend = get_trend(symbol)
 
-except Exception as e:
-    trend = f"Error: {str(e)}"
- 
+    except Exception as e:
+        trend = f"Error: {str(e)}"
 
-        result = (
-            f"Trend: {trend}<br>"
-            "Trade Quality Index: TBD<br>"
-            "Stop Loss: TBD<br>"
-            "TP1 (1R): TBD<br>"
-            "TP2 (2R): TBD<br>"
-            "TP3 (3R): TBD"
-        )
+    result = (
+        f"Trend: {trend}<br>"
+        "Trade Quality Index: TBD<br>"
+        "Stop Loss: TBD<br>"
+        "TP1 (1R): TBD<br>"
+        "TP2 (2R): TBD<br>"
+        "TP3 (3R): TBD"
+    )
 
     return render_template_string(HTML, result=result, ticker=ticker)
 
