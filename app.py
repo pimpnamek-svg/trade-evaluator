@@ -24,13 +24,15 @@ HTML = """
 <body>
     <h2>Trade Evaluator</h2>
     <form method="POST">
-        <input name="ticker" placeholder="BTC, ETH, ADA" required>
+        <input name="ticker" placeholder="BTC, ETH, ADA" value="{{ ticker or '' }}" required>
         <button type="submit">Evaluate</button>
     </form>
     <hr>
     {% if result %}
-        <div>{{ result|safe }}</div>
-    {% endif %}
+    <h3>Results for {{ ticker }}</h3>
+    <div>{{ result|safe }}</div>
+{% endif %}
+
 </body>
 </html>
 """
