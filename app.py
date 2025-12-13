@@ -53,16 +53,17 @@ def home():
     if request.method == "POST":
         ticker = request.form.get("ticker", "").upper()
 
-        try:
-            symbol = f"{ticker}/USDT"
+    try:
+    symbol = f"{ticker}/USDT"
 
-            if symbol not in exchange.symbols:
-                trend = "Pair not available on OKX"
-            else:
-                trend = get_trend(symbol)
+    if exchange.symbols is None or symbol not in exchange.symbols:
+        trend = "Pair not available on OKX"
+    else:
+        trend = get_trend(symbol)
 
-        except Exception as e:
-            trend = f"Error: {str(e)}"
+except Exception as e:
+    trend = f"Error: {str(e)}"
+ 
 
         result = (
             f"Trend: {trend}<br>"
