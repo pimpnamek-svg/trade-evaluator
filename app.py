@@ -50,8 +50,7 @@ def home():
     result = None
     ticker = None
 
-    if request.method == "POST":
-       if request.method == "POST":
+if request.method == "POST":
     ticker = request.form.get("ticker", "").upper()
 
     try:
