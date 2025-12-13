@@ -3,7 +3,11 @@ import os
 import ccxt
 import pandas as pd
 
-exchange = ccxt.okx()
+exchange = ccxt.okx({
+    "enableRateLimit": True
+})
+exchange.load_markets()
+
 
 app = Flask(__name__)
 
@@ -50,9 +54,15 @@ def home():
         ticker = request.form.get("ticker", "").upper()
 
         try:
-            trend = get_trend(f"{ticker}/USDT")
+            symbol = f"{ticker}/USDT"
+if symbol not in exchange.symbols:
+    trend = "Pair not available on OKX"
+else:
+    trend = get_trend(symbol)
+
         except Exception as e:
-            trend = f"Error fetching data"
+    trend = f"Error: {str(e)}"
+
 
         result = (
             f"Trend: {trend}<br>"
