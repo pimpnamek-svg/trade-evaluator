@@ -62,7 +62,17 @@ def get_trend(symbol):
         return "Bearish"
     else:
         return "No Trend"
-     
+     trend = get_trend(f"{ticker}/USDT")
+
+result = (
+    f"Trend: {trend}<br>"
+    "Trade Quality Index: TBD<br>"
+    "Stop Loss: TBD<br>"
+    "TP1 (1R): TBD<br>"
+    "TP2 (2R): TBD<br>"
+    "TP3 (3R): TBD"
+)
+
     return render_template_string(HTML, result=result, ticker=ticker)
 
 if __name__ == "__main__":
