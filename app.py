@@ -150,14 +150,12 @@ def home():
                     volume_state = "Weak"
 
                 # Grade
-                if tqi >= 80:
-                    grade = "A (Trade)"
-                elif tqi >= 65:
-                    grade = "B (Trade)"
-                elif tqi >= 50:
-                    grade = "C (Caution)"
+                if tqi >= 85:
+                    grade = "A (High Conviction)"
+                elif tqi >= 70:
+                    grade = "B (Reduce Size)"
                 else:
-                    grade = "D (Skip)"
+                    grade = "Skip"
 
         except Exception as e:
             direction = "Error"
