@@ -32,18 +32,14 @@ def get_trend(symbol):
     
     distance = abs(df["sma30"].iloc[-1] - df["sma50"].iloc[-1]) / df["close"].iloc[-1]
 
-    if df["sma30"].iloc[-1] > df["sma50"].iloc[-1]:
-        if distance > 0.01:
-            return "Bullish (Strong)"
-        else:
-            return "Bullish (Weak)"
-    elif df["sma30"].iloc[-1] < df["sma50"].iloc[-1]:
-        if distance > 0.01:
-            return "Bearish (Strong)"
-        else:
-            return "Bearish (Weak)"
-    else:
-        return "No Trend"
+    sma30 = df["sma30"].iloc[-1]
+    sma50 = df["sma50"].iloc[-1]
+    price = df["close"].iloc[-1]
+
+    distance = abs(sma30 - sma50) / price
+
+    return f"SMA30={sma30:.2f}, SMA50={sma50:.2f}, Dist={distance:.4f}"
+
 
 
 # --------------------
