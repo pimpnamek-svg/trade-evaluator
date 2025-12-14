@@ -1102,14 +1102,14 @@ def build_flask_app(tool_cfg: ToolConfig):
 # ============================================================
 
 def load_tool_config_from_env() -> ToolConfig:
-    """
-    #Allows you to override key settings via env vars.
-    """
+    # Allows you to override key settings via env vars.
+
     cfg = ToolConfig()
 
     m = os.environ.get("MARKET")
     if m in ("stock", "crypto"):
         cfg.market = m  # type: ignore
+
 
     tf = os.environ.get("TIMEFRAME")
     if tf:
@@ -1167,7 +1167,7 @@ if __name__ == "__main__":
         # LOCAL ONLY — never reachable on Railway
         print("[BOOT] Local CLI mode")
         cli_main(tool_cfg)
-"""
+
 
         
 
