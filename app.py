@@ -52,6 +52,7 @@ import traceback
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple, Literal
+from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
@@ -154,30 +155,25 @@ class ScoutScheduleConfig:
 
 @dataclass
 class ToolConfig:
-    """
-    Master config for the whole tool.
-    """
-    market: MarketType = "stock"  # "stock" or "crypto"
-    timeframe: str = "1h"         # data timeframe
-    candles: int = 220            # how many bars to fetch (needs >= 50 ideally)
+    market: MarketType = "stock"
+    timeframe: str = "1h"
+    candles: int = 220
     paper_mode: bool = True
     play_alert_sound: bool = True
 
-    volume: VolumeTierConfig = VolumeTierConfig()
-    whale: WhaleFlagConfig = WhaleFlagConfig()
-    risk: RiskConfig = RiskConfig()
-    schedule: ScoutScheduleConfig = ScoutScheduleConfig()
+    volume: VolumeTierConfig = field(default_factory=VolumeTierConfig)
+    whale: WhaleFlagConfig = field(default_factory=WhaleFlagConfig)
+    risk: RiskConfig = field(default_factory=RiskConfig)
+    schedule: ScoutScheduleConfig = field(default_factory=ScoutScheduleConfig)
 
-    # Logging
     log_dir: str = "./logs"
     scout_log_csv: str = "scout_results.csv"
     eval_log_csv: str = "manual_evals.csv"
 
-    # Watchlist
-    watchlist: Tuple[str, ...] = (
-        # Example stock watchlist
+    watchlist: tuple[str, ...] = (
         "AAPL", "NVDA", "AMD", "TSLA", "MSFT", "AMZN"
     )
+
 
 
 # ============================================================
