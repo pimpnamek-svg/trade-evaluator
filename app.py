@@ -1,4 +1,6 @@
 """
+# force rebuild
+
 TRADE EVALUATOR TOOL — Reconstructed "Original-Style" Monolithic Script (v0.REBUILD)
 
 Goal:
