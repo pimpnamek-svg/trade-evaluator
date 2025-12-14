@@ -1081,10 +1081,10 @@ def build_flask_app(tool_cfg: ToolConfig):
 #This script supports both:
 
 #A) WEB SERVICE MODE:
-   - Set env RUN_MODE=server
-   - Ensure flask is installed
-   - Start command: python app.py
-   - Railway will provide PORT; we bind to it.
+   #    - Set env RUN_MODE=server
+   #    - Ensure flask is installed
+   #    - Start command: python app.py
+   #    - Railway will provide PORT; we bind to it.
 
 #B) WORKER MODE:
    - Set env RUN_MODE=worker
