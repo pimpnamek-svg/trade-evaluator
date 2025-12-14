@@ -1,8 +1,75 @@
-trade_evaluator_complete.py
-# trade_evaluator_complete.py
-# FULL Trade Evaluator Tool
-# Tiered Volume + Whale Detection + Risk + Auto Scout
-# Paper Trading SAFE
+import pandas as pd
+import numpy as np
+class TradeEvaluator:
+ def __init__(self, bankroll: float, risk_per_trade: float = 0.03):
+ self.bankroll = bankroll
+ self.risk_per_trade = risk_per_trade
+ def sma(self, series: pd.Series, period: int):
+ return series.rolling(period).mean()
+ def atr(self, df: pd.DataFrame, period: int = 14):
+ high_low = df['high'] - df['low']
+ high_close = abs(df['high'] - df['close'].shift())
+ low_close = abs(df['low'] - df['close'].shift())
+ tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
+ return tr.rolling(period).mean()
+ def relative_volume(self, df: pd.DataFrame, period: int = 20):
+ avg_vol = df['volume'].rolling(period).mean()
+ return df['volume'] / avg_vol
+ def trend_state(self, df: pd.DataFrame):
+ sma30 = self.sma(df['close'], 30)
+ sma50 = self.sma(df['close'], 50)
+ if sma30.iloc[-1] > sma50.iloc[-1]:
+ return "Bullish"
+ elif sma30.iloc[-1] < sma50.iloc[-1]:
+ return "Bearish"
+ else:
+ return "Neutral"
+ def volatility_state(self, df: pd.DataFrame):
+ atr_val = self.atr(df).iloc[-1]
+ atr_pct = atr_val / df['close'].iloc[-1]
+ if atr_pct > 0.05:
+ return "High Volatility"
+ elif atr_pct > 0.02:
+ return "Moderate Volatility"
+ else:
+ return "Low Volatility"
+ def position_size(self, entry: float, stop: float):
+ risk_amount = self.bankroll * self.risk_per_trade
+ stop_distance = abs(entry - stop)
+ if stop_distance == 0:
+ return 0
+ return risk_amount / stop_distance
+ def rr_ratio(self, entry: float, stop: float, target: float):
+ risk = abs(entry - stop)
+ reward = abs(target - entry)
+ if risk == 0:
+ return 0
+ return round(reward / risk, 2)
+ def evaluate_trade(self, df, entry, stop, target):
+ trend = self.trend_state(df)
+ vol_state = self.volatility_state(df)
+ rvol = self.relative_volume(df).iloc[-1]
+ rr = self.rr_ratio(entry, stop, target)
+ size = self.position_size(entry, stop)
+ score = 0
+ if trend == "Bullish": score += 30
+ if trend == "Bearish": score += 20
+ if rvol >= 1.5: score += 25
+ if rr >= 2: score += 25
+ decision = "Skip"
+ if score >= 70:
+ decision = "High-Quality Trade"
+ elif score >= 50:
+ decision = "Speculative Trade"
+ return {
+ "Trend": trend,
+ "Volatility": vol_state,
+ "Relative Volume": round(rvol, 2),
+ "RR Ratio": rr,
+ "Position Size": round(size, 2),
+ "Score": score,
+ "Decision": decision
+
 
 from __future__ import annotations
 
