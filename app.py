@@ -754,7 +754,8 @@ def evaluate_symbol(...):
 
 def scout_symbol_quick(provider: BaseProvider, symbol: str, tool_cfg: ToolConfig) -> Dict[str, object]:
     """
-    Scout mode: tier + whale + trend without entry/stop/target.
+    # Scout mode: tier + whale + trend without entry/stop/target.
+
     """
     df = provider.fetch_ohlcv(symbol, timeframe=tool_cfg.timeframe, limit=tool_cfg.candles)
     tr = trend_state(df)
