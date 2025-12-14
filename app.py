@@ -960,21 +960,31 @@ def build_flask_app(tool_cfg: ToolConfig):
                 results.append({"symbol": sym, "error": str(e), "decision": "ERROR"})
         return jsonify(results)
 
-    @app.post("/eval")
-    def eval_post():
-        payload = flask_request.get_json(force=True) or {}
-        symbol = str(payload.get("symbol", "")).upper().strip()
-        entry = float(payload.get("entry", 0))
-        stop = float(payload.get("stop", 0))
-        target = float(payload.get("target", 0))
-        if not symbol or entry == 0 or target == 0:
-            return jsonify({"error": "symbol, entry, target required"}), 400
+    @app.get("/eval")
+def eval_get():
+    symbol = flask_request.args.get("symbol", "").upper().strip()
+    entry = float(flask_request.args.get("entry", 0))
+    stop = float(flask_request.args.get("stop", 0))
+    target = float(flask_request.args.get("target", 0))
 
-        try:
-            res = evaluate_symbol(provider, symbol, tool_cfg, entry=entry, stop=stop, target=target)
-            return jsonify(res)
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
+    if not symbol or entry == 0 or target == 0:
+        return jsonify({
+            "error": "Usage: /eval?symbol=BTC&entry=42500&stop=41200&target=46500"
+        }), 400
+
+    try:
+        res = evaluate_symbol(
+            provider,
+            symbol,
+            tool_cfg,
+            entry=entry,
+            stop=stop,
+            target=target
+        )
+        return jsonify(res)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
     return app
 
