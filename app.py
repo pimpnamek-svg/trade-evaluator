@@ -1103,7 +1103,7 @@ def build_flask_app(tool_cfg: ToolConfig):
 
 def load_tool_config_from_env() -> ToolConfig:
     """
-    Allows you to override key settings via env vars.
+    #Allows you to override key settings via env vars.
     """
     cfg = ToolConfig()
 
