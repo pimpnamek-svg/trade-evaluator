@@ -800,7 +800,8 @@ def should_run_scout(now: datetime, cfg: ScoutScheduleConfig, last_run: Optional
 
 def run_auto_scout_loop(tool_cfg: ToolConfig) -> None:
     """
-    Runs forever (worker mode). Every hour on the hour, during schedule window, scans watchlist.
+    # Runs forever (worker mode). Every hour on the hour, during schedule window, scans watchlist.
+
     This is how you run it on Railway as a WORKER service too.
     """
     provider = build_provider(tool_cfg.market)
