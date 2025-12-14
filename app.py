@@ -1087,10 +1087,10 @@ def build_flask_app(tool_cfg: ToolConfig):
    #    - Railway will provide PORT; we bind to it.
 
 #B) WORKER MODE:
-   - Set env RUN_MODE=worker
-   - Start command: python app.py
-   - This will run the auto-scout loop forever.
-   - There is no web page in worker mode.
+   #    - Set env RUN_MODE=worker
+   #    - Start command: python app.py
+   #    - This will run the auto-scout loop forever.
+   #    - There is no web page in worker mode.
 
 If you tried to deploy CLI to a web service, it appears "online" but you see nothing.
 So you must choose server or worker mode.
