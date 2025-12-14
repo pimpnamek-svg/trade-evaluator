@@ -1045,30 +1045,40 @@ def load_tool_config_from_env() -> ToolConfig:
 
     return cfg
 
-
 if __name__ == "__main__":
     tool_cfg = load_tool_config_from_env()
 
     run_mode = os.environ.get("RUN_MODE", "").strip().lower()
 
-    # HARD SAFETY: never allow CLI on Railway
-    if os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("RAILWAY_PROJECT_ID"):
-        if run_mode not in ("server", "worker"):
-            print("[FATAL] CLI mode is disabled on Railway.")
-            print("Set RUN_MODE=server or RUN_MODE=worker.")
-            sys.exit(1)
+    # HARD STOP: Railway must NEVER run CLI
+    on_railway = bool(
+        os.environ.get("RAILWAY_PROJECT_ID")
+        or os.environ.get("RAILWAY_ENVIRONMENT")
+        or os.environ.get("RAILWAY_SERVICE_ID")
+    )
+
+    if on_railway and run_mode not in ("server", "worker"):
+        print("[FATAL] CLI mode is disabled on Railway.")
+        print("Set RUN_MODE=server or RUN_MODE=worker.")
+        sys.exit(1)
 
     if run_mode == "server":
         app = build_flask_app(tool_cfg)
         port = int(os.environ.get("PORT", "8080"))
+        print("[BOOT] Server mode starting on port", port)
         app.run(host="0.0.0.0", port=port)
 
     elif run_mode == "worker":
+        print("[BOOT] Worker mode starting (auto-scout loop)")
         run_auto_scout_loop(tool_cfg)
 
     else:
-        # LOCAL ONLY
+        # LOCAL ONLY — never reachable on Railway
+        print("[BOOT] Local CLI mode")
         cli_main(tool_cfg)
+
+
+        
 
 
 
