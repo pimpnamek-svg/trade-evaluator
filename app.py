@@ -1007,7 +1007,7 @@ def cli_main(tool_cfg: ToolConfig) -> None:
 def build_flask_app(tool_cfg: ToolConfig):
     """
     #If you want this to run as a Railway WEB service, you need a server.
-    This provides endpoints to:
+    #This provides endpoints to:
       - /health
       - /scout (one scan)
       - /eval  (manual eval via JSON)
