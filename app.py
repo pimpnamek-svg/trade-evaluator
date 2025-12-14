@@ -1072,8 +1072,8 @@ def build_flask_app(tool_cfg: ToolConfig):
 # ============================================================
 """
 Railway has two typical service styles:
-1) Web service (expects a port to be bound)
-2) Worker service (background loop / job)
+#1) Web service (expects a port to be bound)
+#2) Worker service (background loop / job)
 
 This script supports both:
 
