@@ -1093,7 +1093,7 @@ def build_flask_app(tool_cfg: ToolConfig):
    #    - There is no web page in worker mode.
 
 #If you tried to deploy CLI to a web service, it appears "online" but you see nothing.
-So you must choose server or worker mode.
+#So you must choose server or worker mode.
 """
 
 
