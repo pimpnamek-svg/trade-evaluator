@@ -931,7 +931,7 @@ def print_config(tool_cfg: ToolConfig) -> None:
 
 def cli_main(tool_cfg: ToolConfig) -> None:
     """
-    Classic CLI main loop.
+    #Classic CLI main loop.
     """
     while True:
         print("\n" + "=" * 72)
