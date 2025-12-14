@@ -664,16 +664,34 @@ def evaluate_symbol(
     target: float,
 ) -> Dict[str, object]:
     """
+def evaluate_symbol(...):
+    """
     Full evaluation for a symbol with entry/stop/target.
     """
-    df = provider.fetch_ohlcv(symbol, timeframe=tool_cfg.timeframe, limit=tool_cfg.candles)
-quiet_accumulation = detect_quiet_accumulation(
-    df=df,
-    rvol=rvol,
-    atr_pct=atr_pct,
-    trend=trend,
-    whale_count=whale_count,
-    cfg=cfg.volume
+    df = provider.fetch_ohlcv(
+        symbol,
+        timeframe=tool_cfg.timeframe,
+        limit=tool_cfg.candles
+    )
+
+    rvol = relative_volume(df)
+    atr_pct = atr_pct_from_df(df)
+    trend = trend_state(df)
+
+    flags = whale_flags(df, cfg.whale)
+    whale_count = sum(flags.values())
+
+    quiet_accumulation = detect_quiet_accumulation(
+        df=df,
+        rvol=rvol,
+        atr_pct=atr_pct,
+        trend=trend,
+        whale_count=whale_count,
+        cfg=cfg.volume
+    )
+
+    # continue evaluation logic here
+
 )
 
     tr = trend_state(df)
