@@ -1078,7 +1078,7 @@ def build_flask_app(tool_cfg: ToolConfig):
 #1) Web service (expects a port to be bound)
 #2) Worker service (background loop / job)
 
-This script supports both:
+#This script supports both:
 
 #A) WEB SERVICE MODE:
    - Set env RUN_MODE=server
