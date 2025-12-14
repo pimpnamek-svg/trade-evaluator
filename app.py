@@ -961,7 +961,7 @@ def build_flask_app(tool_cfg: ToolConfig):
         return jsonify(results)
 
     @app.get("/eval")
-def eval_get():
+    def eval_get():
     symbol = flask_request.args.get("symbol", "").upper().strip()
     entry = float(flask_request.args.get("entry", 0))
     stop = float(flask_request.args.get("stop", 0))
