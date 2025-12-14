@@ -397,6 +397,41 @@ def volatility_state(df: pd.DataFrame, period: int = 14) -> Tuple[str, float]:
 # ============================================================
 # WHALE FLAGS
 # ============================================================
+# =========================
+# QUIET ACCUMULATION
+# =========================
+
+def detect_quiet_accumulation(
+    df: pd.DataFrame,
+    rvol: float,
+    atr_pct: float,
+    trend: str,
+    whale_count: int,
+    cfg: VolumeTierConfig
+) -> bool:
+    """
+    Detects low-volume, low-volatility compression
+    that often precedes expansion.
+    NOT a trade signal.
+    """
+
+    # Avoid aggressive phases
+    if whale_count >= 2:
+        return False
+
+    # Must be below active volume threshold
+    if rvol >= cfg.tier_b_min_rvol:
+        return False
+
+    # ATR compression threshold (~0.8%)
+    if atr_pct > 0.008:
+        return False
+
+    # Avoid strong counter-trend
+    if trend not in ("Neutral", "Bullish", "Bearish"):
+        return False
+
+    return True
 
 def whale_flags(df: pd.DataFrame, cfg: WhaleFlagConfig) -> Dict[str, bool]:
     """
@@ -632,6 +667,14 @@ def evaluate_symbol(
     Full evaluation for a symbol with entry/stop/target.
     """
     df = provider.fetch_ohlcv(symbol, timeframe=tool_cfg.timeframe, limit=tool_cfg.candles)
+quiet_accumulation = detect_quiet_accumulation(
+    df=df,
+    rvol=rvol,
+    atr_pct=atr_pct,
+    trend=trend,
+    whale_count=whale_count,
+    cfg=cfg.volume
+)
 
     tr = trend_state(df)
     vol_state, atr_pct = volatility_state(df, period=tool_cfg.risk.atr_period)
@@ -684,6 +727,8 @@ def evaluate_symbol(
         "score": int(score),
         "decision": decision,
         "paper_mode": bool(tool_cfg.paper_mode),
+        "quiet_accumulation": quiet_accumulation,
+
     }
     return res
 
@@ -712,6 +757,8 @@ def scout_symbol_quick(provider: BaseProvider, symbol: str, tool_cfg: ToolConfig
         "whale_count": whale_count,
         "decision": ("ALERT" if tier in ("A", "B+") else "LOG"),
         "paper_mode": bool(tool_cfg.paper_mode),
+        "quiet_accumulation": quiet_accumulation,
+
     }
 
 
