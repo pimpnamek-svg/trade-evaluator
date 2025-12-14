@@ -666,7 +666,8 @@ def evaluate_symbol(
     """
 def evaluate_symbol(...):
     """
-    Full evaluation for a symbol with entry/stop/target.
+    # Full evaluation for a symbol with entry/stop/target.
+
     """
     df = provider.fetch_ohlcv(
         symbol,
