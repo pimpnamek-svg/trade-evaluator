@@ -452,18 +452,29 @@ def whale_flags(df: pd.DataFrame, cfg: WhaleFlagConfig) -> Dict[str, bool]:
 # ============================================================
 
 def classify_tier(trend: str, rvol_val: float, whale_count: int, cfg: VolumeTierConfig) -> TierType:
-    """
-    Volume is not a veto anymore. It's a classifier.
-    """
+    # Ignore non-directional markets
     if trend not in ("Bullish", "Bearish"):
         return "C"
+
+    # Tier A: confirmed momentum
     if rvol_val >= cfg.tier_a_rvol:
         return "A"
-    if (rvol_val >= cfg.tier_bplus_min_rvol) and (whale_count >= 2):
+
+    # NEW RULE:
+    # Promote early whale setups to B+ if trend aligns
+    if whale_count == 1 and rvol_val >= cfg.tier_b_min_rvol:
         return "B+"
+
+    # Original B+ rule (stronger confirmation)
+    if whale_count >= 2 and rvol_val >= cfg.tier_bplus_min_rvol:
+        return "B+"
+
+    # Tier B: early / signal-style
     if rvol_val >= cfg.tier_b_min_rvol:
         return "B"
+
     return "C"
+
 
 
 # ============================================================
