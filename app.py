@@ -1,7 +1,8 @@
 
 # force rebuild
 
-TRADE EVALUATOR TOOL — Reconstructed "Original-Style" Monolithic Script (v0.REBUILD)
+# TRADE EVALUATOR TOOL — Reconstructed "Original-Style" Monolithic Script (v0.REBUILD)
+
 
 Goal:
 - Reconstruct a full-sized, all-in-one evaluator tool (similar to your original 455+ lines).
