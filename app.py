@@ -287,6 +287,7 @@ def create_app():
     
     return app, tool_cfg
 
+
             
     top_signals = [r for r in results if r['score'] > 60]
             
