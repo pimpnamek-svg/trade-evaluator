@@ -9,12 +9,12 @@ Goal:
 - Add your requested enhancements WITHOUT shrinking the tool down into a tiny demo.
 
 What you asked to add:
-1) Volume requirements less strict (manual + automatic)
-2) Tiered setups (A / B+ / B / C)
-3) Whale activity flagging (stealth accumulation / absorption / wick defense)
-4) Auto-picker: scout every hour Monday–Friday 7:00a–8:00p CST
-5) Alert sound: cash register style (beep fallback is used here)
-6) Paper trading caveat (NO execution)
+#1) Volume requirements less strict (manual + automatic)
+#2) Tiered setups (A / B+ / B / C)
+#3) Whale activity flagging (stealth accumulation / absorption / wick defense)
+#4) Auto-picker: scout every hour Monday–Friday 7:00a–8:00p CST
+#5) Alert sound: cash register style (beep fallback is used here)
+#6) Paper trading caveat (NO execution)
 
 This script includes:
 - Indicator engine (SMA, ATR, RVOL)
