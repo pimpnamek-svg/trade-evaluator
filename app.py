@@ -29,15 +29,14 @@ class OKXProvider:
                 continue
         raise Exception("All OKX endpoints unreachable")
 
-    def get_current_price(self, symbol: str) -> float:
-        inst = self.normalize_symbol(symbol)
-        data = self._request("/market/ticker", {"instId": inst})
-        return float(data["data"][0]["last"])
+def get_current_price(self, symbol: str) -> float:
+    inst = self.normalize_symbol(symbol)
+    data = self._request("/market/ticker", {"instId": inst})
+    return float(data["data"][0]["last"])
 
-    def get_candles(self, symbol: str, limit=200):
-        inst = self.normalize_symbol(symbol)
-        bases = ["https://aws.okx.com", "https://www.okx.com"]
-    
+def get_candles(self, symbol: str, limit=200):
+    inst = self.normalize_symbol(symbol)
+    bases = ["https://aws.okx.com", "https://www.okx.com"]
     for base in bases:
         try:
             url = f"{base}/api/v5/market/candles"
@@ -47,17 +46,18 @@ class OKXProvider:
                 "limit": str(limit)
             }, timeout=5).json()
             
-            if r.get("code") == "0" and r["data"]:
-                data = r["data"][::-1]  # Chronological order
+            if r.get("code") == "0" and r.get("data"):
+                data = r["data"][::-1]
                 closes = [float(c[4]) for c in data]
                 highs = [float(c[2]) for c in data]
                 lows = [float(c[3]) for c in data]
                 volumes = [float(c[5]) for c in data]
                 return closes, highs, lows, volumes
-        except:
+                
+        except Exception:
             continue
-    raise Exception(f"Failed to fetch {inst} candles")
-
+    
+    raise Exception(f"Failed to fetch candles for {inst}")
 
 
 provider = OKXProvider()
