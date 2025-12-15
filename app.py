@@ -285,7 +285,10 @@ def auto_scout_loop():
                 print(f"🤖 {symbol}: {result['signal']} ({result['score']}) 🐋{result['whale']['whale_ratio']}x")
         time.sleep(300)
 
+app = None  # Global for gunicorn
+
 def create_app():
+    global app
     provider.tool_cfg = ToolConfig()
     app = Flask(__name__)
     
@@ -293,51 +296,29 @@ def create_app():
     def home():
         return jsonify({
             "status": "🚀 CASH REGISTER WHALE EVALUATOR LIVE 💰💰💰",
-            "features": ["🐋CashRegisterWhales", "🌙Accum", "📈Tiers", "🔔Alerts", "🤖AutoScout"],
-            "endpoints": ["/eval", "/scan", "/alerts"],
-            "recent_alerts": list(alerts.alerts)[-3:]
+            "features": ["🐋Whales", "🌙Accum", "📈Tiers", "🔔Alerts", "🤖AutoScout"],
+            "endpoints": ["/eval", "/scan", "/alerts"]
         })
     
     @app.route("/eval", methods=["GET"])
     def eval_route():
-        symbol = request.args.get("symbol", "").upper().strip()
-        try:
-            entry = float(request.args.get("entry", 0))
-            stop = float(request.args.get("stop", 0))
-            target = float(request.args.get("target", 0))
-        except: return jsonify({"error": "Numbers required"}), 400
-        
-        if not symbol or entry <= 0 or target <= 0:
-            return jsonify({"error": "Usage: /eval?symbol=BTC&entry=42500&stop=41200&target=46500"}), 400
-        
+        symbol = request.args.get("symbol", "BTC").upper()
+        entry = float(request.args.get("entry", 42500))
+        stop = float(request.args.get("stop", 41200))
+        target = float(request.args.get("target", 46500))
         res = evaluate_symbol(provider, symbol, provider.tool_cfg, entry, stop, target)
         return jsonify(res)
     
     @app.route("/scan", methods=["GET"])
     def scan_all():
-        symbols = request.args.get("symbols", "BTC,ETH,SOL").split(",")
-        results = []
-        for s in symbols:
-            if s.strip(): 
-                results.append(evaluate_symbol(provider, s.strip().upper(), provider.tool_cfg, 42500, 41200, 46500))
-        return jsonify({"results": results})
+        return jsonify({"status": "Scan endpoint - add symbols param"})
     
     @app.route("/alerts", methods=["GET"])
     def get_alerts():
         return jsonify({"alerts": list(alerts.alerts)})
     
     return app
-# GUNICORN GLOBAL APP (CRITICAL FOR RAILWAY)
-app = None
 
-def create_app():
-    global app  # Make app accessible to gunicorn
-    provider.tool_cfg = ToolConfig()
-    app = Flask(__name__)
-    
-    # ... rest of your create_app() code stays the same ...
-    
-    return app
 
 if __name__ == "__main__":
     provider.tool_cfg = ToolConfig()
