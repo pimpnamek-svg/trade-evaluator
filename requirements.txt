@@ -1,6 +1,6 @@
-flask
-gunicorn
-ccxt
-pandas
-numpy
-requests
+flask==3.0.3
+gunicorn==22.0.0
+ccxt==4.3.0
+pandas==2.2.0
+numpy==1.26.0
+requests==2.31.0
