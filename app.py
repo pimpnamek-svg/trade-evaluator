@@ -215,84 +215,153 @@ def cli_main(tool_cfg: ToolConfig):
 # ============================================================
 # FLASK APP FACTORY (RAILWAY READY)
 # ============================================================
-    def create_app():
-        app = Flask(__name__)
-        tool_cfg = ToolConfig()
-        
-        @app.route("/", methods=["GET"])
-        def home():
-            import requests
-            
-            def get_live_price(symbol):
-                try:
-                    url = f"https://api.coingecko.com/api/v3/simple/price?ids={symbol.lower()}&vs_currencies=usd"
-                    resp = requests.get(url, timeout=5).json()
-                    return resp[symbol.lower()]['usd']
-                except:
-                    defaults = {'BTC': 95000, 'ETH': 3800, 'SOL': 220}
-                    return defaults.get(symbol, 95000)
-            
-            action = request.args.get("action", "scan")
-            
-            if action == "scan":
-                # SCAN MODE - finds BEST entries automatically
-                symbols = ["BTC", "ETH", "SOL"]
-                results = []
-                
-                for symbol in symbols:
-                    try:
-                        live_price = get_live_price(symbol)
-                        # TEST multiple entry levels around current price
-                        test_entry = live_price * 0.995  # slight pullback
-                        test_stop = test_entry * 0.97    # 3% stop
-                        test_target = test_entry * 1.10  # 10% target
-                        
-                        provider.refresh_data()  # Fresh data
-                        time.sleep(0.1)          # Let it settle
-                        
-                        result = evaluate_symbol(provider, symbol, tool_cfg, test_entry, test_stop, test_target)  # ← USE test_ vars!
-                        
-                        results.append({
-                            "symbol": symbol,
-                            "live_price": live_price,
-                            "suggested_entry": test_entry,
-                            "signal": result['signal'],
-                            "score": result['score'],
-                            "rsi": result['rsi']
-                        })
-                    except:
-                        pass
+def create_app():
+    app = Flask(__name__)
+    tool_cfg = ToolConfig()
     
-                
-                # Show top signals only
-                top_signals = [r for r in results if r['score'] > 60]
-                
-                return f"""
-                <html><body style='font-family:Arial;background:#1a1a1a;color:white;padding:50px;max-width:800px;margin:auto'>
-                    <h1>🚀 WHALE ENTRY SCANNER</h1>
-                    <h2>Live signals (Score > 60)</h2>
-                    {''.join([f'<div style="background:#333;padding:15px;margin:10px;border-radius:10px"><strong>{r["symbol"]}</strong> ${r["live_price"]:,.0f} → Entry ${r["suggested_entry"]:,.0f} <strong>{r["signal"]} ({r["score"]}/100)</strong> RSI:{r["rsi"]}</div>' for r in top_signals])}
+    @app.route("/", methods=["GET"])
+    def home():
+        import requests
+        import time
+        
+        def get_live_price(symbol):
+            try:
+                url = f"https://api.coingecko.com/api/v3/simple/price?ids={symbol.lower()}&vs_currencies=usd"
+                resp = requests.get(url, timeout=5).json()
+                return resp[symbol.lower()]['usd']
+            except:
+                defaults = {'BTC': 95000, 'ETH': 3800, 'SOL': 220}
+                return defaults.get(symbol, 95000)
+        
+        action = request.args.get("action", "scan")
+        
+        if action == "scan":
+            symbols = ["BTC", "ETH", "SOL"]
+            results = []
+            
+            for symbol in symbols:
+                try:
+                    live_price = get_live_price(symbol)
+                    test_entry = live_price * 0.995
+                    test_stop = test_entry * 0.97
+                    test_target = test_entry * 1.10
                     
-                    <h3>🔄 Rescan:</h3>
-                    <form method="GET">
-                        <input type="hidden" name="action" value="scan">
-                        <button style="padding:20px 50px;background:#4CAF50;color:white;border:none;font-size:20px">SCAN ALL ➡️</button>
-                    </form>
-                </body></html>
-                """
+                    provider.refresh_data()
+                    time.sleep(0.1)
+                    
+                    result = evaluate_symbol(provider, symbol, tool_cfg, test_entry, test_stop, test_target)
+                    
+                    results.append({
+                        "symbol": symbol,
+                        "live_price": live_price,
+                        "suggested_entry": test_entry,
+                        "signal": result['signal'],
+                        "score": result['score'],
+                        "rsi": result['rsi']
+                    })
+                except:
+                    pass
+            
+            top_signals = [r for r in results if r['score'] > 60]
+            
+            html_results = ''.join([
+                f'<div style="background:#333;padding:15px;margin:10px;border-radius:10px"><strong>{r["symbol"]}</strong> ${r["live_price"]:,.0f} → Entry ${r["suggested_entry"]:,.0f} <strong>{r["signal"]} ({r["score"]}/100)</strong> RSI:{r["rsi"]:.0f}</div>'
+                for r in top_signals
+            ])
             
             return f"""
-            <html><body style='font-family:Arial;background:#1a1a1a;color:white;padding:50px;max-width:600px;margin:auto'>
-                <h1>🚀 CASH REGISTER SCANNER</h1>
-                <p>Click SCAN to find whale entries automatically</p>
+            <html><body style='font-family:Arial;background:#1a1a1a;color:white;padding:50px;max-width:800px;margin:auto'>
+                <h1>🚀 WHALE ENTRY SCANNER</h1>
+                <h2>Live signals (Score > 60)</h2>
+                {html_results or '<p>No strong signals right now...</p>'}
+                <form method="GET"><input type="hidden" name="action" value="scan"><button style="padding:20px 50px;background:#4CAF50;color:white;border:none;font-size:20px">SCAN ➡️</button></form>
+            </body></html>
+            """
+        
+        return f"""
+        <html><body style='font-family:Arial;background:#1a1a1a;color:white;padding:50px;max-width:600px;margin:auto'>
+            <h1>🚀 CASH REGISTER</h1>
+            <form method="GET"><input type="hidden" name="action" value="scan"><button style="padding:20px 50px;background:#4CAF50;color:white;border:none;font-size:20px">FIND ENTRIES ➡️</button></form>
+        </body></html>
+        """
+    
+    return app, tool_cfg
+
+            
+            top_signals = [r for r in results if r['score'] > 60]
+            
+            html_results = ''.join([
+                f'<div style="background:#333;padding:15px;margin:10px;border-radius:10px">'
+                f'<strong>{r["symbol"]}</strong> ${r["live_price"]:,.0f} → '
+                f'Entry ${r["suggested_entry"]:,.0f} <strong>{r["signal"]} ({r["score"]}/100)</strong> '
+                f'RSI:{r["rsi"]:.0f}</div>'
+                for r in top_signals
+            ])
+            
+            return f"""
+            <html><body style='font-family:Arial;background:#1a1a1a;color:white;padding:50px;max-width:800px;margin:auto'>
+                <h1>🚀 WHALE ENTRY SCANNER</h1>
+                <h2>Live signals (Score > 60)</h2>
+                {html_results or '<p>No strong signals right now. Rescan in 60s...</p>'}
+                
+                <h3>🔄 Rescan:</h3>
                 <form method="GET">
                     <input type="hidden" name="action" value="scan">
-                    <button style="padding:20px 50px;background:#4CAF50;color:white;border:none;font-size:20px">FIND ENTRIES ➡️</button>
+                    <button style="padding:20px 50px;background:#4CAF50;color:white;border:none;font-size:20px">SCAN ALL ➡️</button>
                 </form>
             </body></html>
             """
         
-        return app, tool_cfg
+        return f"""
+        <html><body style='font-family:Arial;background:#1a1a1a;color:white;padding:50px;max-width:600px;margin:auto'>
+            <h1>🚀 CASH REGISTER SCANNER</h1>
+            <p>Click SCAN to find whale entries automatically</p>
+            <form method="GET">
+                <input type="hidden" name="action" value="scan">
+                <button style="padding:20px 50px;background:#4CAF50;color:white;border:none;font-size:20px">FIND ENTRIES ➡️</button>
+            </form>
+        </body></html>
+        """
+    
+    return app, tool_cfg
+
+            
+            top_signals = [r for r in results if r['score'] > 60]
+            
+            html_results = ''.join([
+                f'<div style="background:#333;padding:15px;margin:10px;border-radius:10px">'
+                f'<strong>{r["symbol"]}</strong> ${r["live_price"]:,.0f} → '
+                f'Entry ${r["suggested_entry"]:,.0f} <strong>{r["signal"]} ({r["score"]}/100)</strong> '
+                f'RSI:{r["rsi"]:.0f}</div>'
+                for r in top_signals
+            ])
+            
+            return f"""
+            <html><body style='font-family:Arial;background:#1a1a1a;color:white;padding:50px;max-width:800px;margin:auto'>
+                <h1>🚀 WHALE ENTRY SCANNER</h1>
+                <h2>Live signals (Score > 60)</h2>
+                {html_results or '<p>No strong signals right now. Rescan in 60s...</p>'}
+                
+                <h3>🔄 Rescan:</h3>
+                <form method="GET">
+                    <input type="hidden" name="action" value="scan">
+                    <button style="padding:20px 50px;background:#4CAF50;color:white;border:none;font-size:20px">SCAN ALL ➡️</button>
+                </form>
+            </body></html>
+            """
+        
+        return f"""
+        <html><body style='font-family:Arial;background:#1a1a1a;color:white;padding:50px;max-width:600px;margin:auto'>
+            <h1>🚀 CASH REGISTER SCANNER</h1>
+            <p>Click SCAN to find whale entries automatically</p>
+            <form method="GET">
+                <input type="hidden" name="action" value="scan">
+                <button style="padding:20px 50px;background:#4CAF50;color:white;border:none;font-size:20px">FIND ENTRIES ➡️</button>
+            </form>
+        </body></html>
+        """
+    
+    return app, tool_cfg
 
 
 
