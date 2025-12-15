@@ -288,7 +288,7 @@ def create_app():
     return app, tool_cfg
 
             
-            top_signals = [r for r in results if r['score'] > 60]
+    top_signals = [r for r in results if r['score'] > 60]
             
             html_results = ''.join([
                 f'<div style="background:#333;padding:15px;margin:10px;border-radius:10px">'
