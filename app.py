@@ -161,26 +161,13 @@ def evaluate(symbol, entry, stop, target):
 
     return {
         "symbol": f"{symbol.upper()}-USDT",
-        "current_price": round(price, 2),
-        "entry": round(entry, 2),
-        "stop": round(stop, 2),
-        "target": round(target, 2),
-        "suggested_entry": suggested_entry,
-        "suggested_stop": suggested_stop,
-        "suggested_target": suggested_target,
-        "ema_fast": round(ema_fast, 2),
-        "ema_slow": round(ema_slow, 2),
-        "rsi": round(rsi_val, 1),
-        "atr": round(atr_val, 2),
-        "risk": round(risk, 2),
-        "reward": round(reward, 2),
-        "rr_ratio": rr,
-        "score": score,
+        # ... all your fields ...
         "signal": signal,
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
     }
 
-   app = Flask(__name__)
+# Flask app (outside evaluate function)
+app = Flask(__name__)
 
 @app.route("/eval")
 def eval_route():
