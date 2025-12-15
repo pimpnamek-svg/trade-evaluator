@@ -221,64 +221,69 @@ def create_app():
     
     @app.route("/", methods=["GET"])
     def home():
-        return jsonify({
-            "status": "Trade Evaluator LIVE",
-            "endpoints": {
-                "eval": "/eval?symbol=BTC&entry=42500&stop=41200&target=46500",
-                "scan": "/scan?symbols=BTC,ETH,SPY,QQQ",
-            },
-            "config": vars(tool_cfg),
-            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-        })
+        symbol = request.args.get("symbol", "").upper().strip()
+        if symbol:
+            try:
+                entry = float(request.args.get("entry", 42500))
+                stop = float(request.args.get("stop", 41200))
+                target = float(request.args.get("target", 46500))
+                result = evaluate_symbol(provider, symbol, tool_cfg, entry, stop, target)
+                return f"""
+                <html>
+                <body style='font-family:Arial;background:#1a1a1a;color:white;padding:50px;max-width:700px;margin:auto'>
+                    <h1>🚀 TRADE EVALUATOR RESULT</h1>
+                    <h2 style='color:#4CAF50'>{result['symbol']} → <strong>{result['signal']}</strong> (Score: {result['score']}/100)</h2>
+                    <div style='background:#333;padding:20px;border-radius:10px'>
+                        <p><strong>Entry:</strong> ${result['entry']} | <strong>Stop:</strong> ${result['stop']} | <strong>Target:</strong> ${result['target']}</p>
+                        <p><strong>Risk:</strong> ${result['risk']} | <strong>Reward:</strong> ${result['reward']} | <strong>R/R:</strong> {result['rr_ratio']}x</p>
+                        <p><strong>RSI:</strong> {result['rsi']} | <strong>Accumulation:</strong> {result['accumulation']['accumulation']}</p>
+                    </div>
+                    
+                    <h3 style='margin-top:40px'>🔄 Try Another Trade:</h3>
+                    <form method="GET">
+                        Ticker: <input name="symbol" value="BTC" style="padding:10px;width:100px"><br><br>
+                        Entry: <input name="entry" value="42500" style="padding:10px;width:100px">
+                        Stop: <input name="stop" value="41200" style="padding:10px;width:100px">
+                        Target: <input name="target" value="46500" style="padding:10px;width:100px"><br><br>
+                        <button style="padding:15px 40px;background:#4CAF50;color:white;border:none;font-size:18px;cursor:pointer">EVALUATE ➡️</button>
+                    </form>
+                </body>
+                </html>
+                """
+            except:
+                pass
+        
+        # Default input form
+        return """
+        <html>
+        <body style='font-family:Arial;background:#1a1a1a;color:white;padding:50px;max-width:600px;margin:auto'>
+            <h1>🚀 CASH REGISTER TRADE EVALUATOR 💰</h1>
+            <form method="GET">
+                <p><strong>Enter Your Trade Setup:</strong></p>
+                Ticker: <input name="symbol" value="BTC" style="padding:10px;width:100px"><br><br>
+                Entry: <input name="entry" value="42500" style="padding:10px;width:100px">
+                Stop: <input name="stop" value="41200" style="padding:10px;width:100px">
+                Target: <input name="target" value="46500" style="padding:10px;width:100px"><br><br>
+                <button style="padding:20px 50px;background:#4CAF50;color:white;border:none;font-size:20px;cursor:pointer">ANALYZE TRADE ➡️</button>
+            </form>
+            <p style='margin-top:30px;color:#888'><em>Works for BTC, ETH, SOL, SPY, QQQ, any ticker!</em></p>
+        </body>
+        </html>
+        """
     
+    # Keep your existing /eval and /scan routes if you want them
     @app.route("/eval", methods=["GET"])
     def eval_route():
-        symbol = request.args.get("symbol", "").upper().strip()
-        try:
-            entry = float(request.args.get("entry", 0))
-            stop = float(request.args.get("stop", 0))
-            target = float(request.args.get("target", 0))
-        except (ValueError, TypeError):
-            return jsonify({"error": "entry/stop/target must be numbers"}), 400
-        
-        if not symbol or entry <= 0 or stop <= 0 or target <= 0:
-            return jsonify({
-                "error": "Usage: /eval?symbol=BTC&entry=42500&stop=41200&target=46500"
-            }), 400
-        
-        try:
-            res = evaluate_symbol(provider, symbol, tool_cfg, entry, stop, target)
-            return jsonify(res)
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
+        # ... your existing eval_route code ...
+        pass
     
     @app.route("/scan", methods=["GET"])
     def scan_all():
-        symbols = request.args.get("symbols", "BTC,ETH,SPY,QQQ").upper().split(",")
-        results = []
-        
-        for symbol in symbols:
-            symbol = symbol.strip()
-            if symbol:
-                try:
-                    res = evaluate_symbol(
-                        provider,
-                        symbol,
-                        tool_cfg,
-                        entry=42500,
-                        stop=41200,
-                        target=46500,
-                    )
-                    results.append(res)
-                except Exception as e:
-                    results.append({"symbol": symbol, "error": str(e)})
-        
-        return jsonify({
-            "results": results,
-            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-        })
+        # ... your existing scan code ...
+        pass
     
     return app, tool_cfg
+
 
 # ============================================================
 # RAILWAY ENTRY POINT
