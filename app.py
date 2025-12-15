@@ -35,8 +35,8 @@ class OKXProvider:
         return float(data["data"][0]["last"])
 
     def get_candles(self, symbol: str, limit=200):
-    inst = self.normalize_symbol(symbol)
-    bases = ["https://aws.okx.com", "https://www.okx.com"]
+        inst = self.normalize_symbol(symbol)
+        bases = ["https://aws.okx.com", "https://www.okx.com"]
     
     for base in bases:
         try:
