@@ -1,4 +1,4 @@
-"""
+
 # force rebuild
 
 TRADE EVALUATOR TOOL — Reconstructed "Original-Style" Monolithic Script (v0.REBUILD)
@@ -40,7 +40,7 @@ IMPORTANT:
   CLI won't show in a web URL. See "RAILWAY NOTES" near the bottom.
 
 Author: ChatGPT (rebuild)
-"""
+
 
 from __future__ import annotations
 
@@ -93,13 +93,13 @@ TierType = Literal["A", "B+", "B", "C"]
 
 @dataclass
 class VolumeTierConfig:
-    """
+    
     Tier logic:
       A: Confirmed momentum (public breakout) -> high RVOL
       B+: Whale/accumulation style -> modest RVOL + whale flags
       B: Early/signal style -> low/moderate RVOL allowed
       C: Watch only / low edge
-    """
+    
     tier_a_rvol: float = 1.50
     tier_bplus_min_rvol: float = 1.05
     tier_b_min_rvol: float = 0.80
@@ -110,10 +110,10 @@ class VolumeTierConfig:
 
 @dataclass
 class WhaleFlagConfig:
-    """
+    
     Whale flag heuristics (lightweight, paper-test friendly).
     These are probabilistic signals, not guarantees.
-    """
+    
     # Flag 1: stealth accumulation
     stealth_rvol_min: float = 1.10
     atr_fall_lookback: int = 6
@@ -183,10 +183,10 @@ class ToolConfig:
 # ============================================================
 
 def now_cst() -> datetime:
-    """
+    
     Returns current time in America/Chicago if zoneinfo available,
     else returns local time (still workable for scheduling if server is CST).
-    """
+    
     if ZoneInfo is None:
         return datetime.now()
     try:
@@ -214,11 +214,11 @@ def is_top_of_hour(dt: datetime, sched: ScoutScheduleConfig) -> bool:
 # ============================================================
 
 def cash_register_alert():
-    """
+    
     Simple alert:
     - Windows: winsound beep pattern
     - Others: terminal bell
-    """
+    
     try:
         if sys.platform.startswith("win"):
             import winsound  # type: ignore
@@ -246,11 +246,11 @@ class BaseProvider:
 
 
 class StooqStockProvider(BaseProvider):
-    """
+    
     Stock OHLCV from Stooq (free, no API key).
     Stooq provides daily and some intraday; intraday coverage can be limited.
     If intraday isn't available for a symbol, you may get empty/limited data.
-    """
+    
     BASE = "https://stooq.com/q/d/l/"
 
     def fetch_ohlcv(self, symbol: str, timeframe: str, limit: int) -> pd.DataFrame:
@@ -300,13 +300,13 @@ class StooqStockProvider(BaseProvider):
 
 
 class CCXTCryptoProvider(BaseProvider):
-    """
+    
     Crypto OHLCV from ccxt.
     Requires:
       - ccxt installed
       - network access
     Uses env var CRYPTO_EXCHANGE (default 'binance').
-    """
+    
 
     def __init__(self):
         if ccxt is None:
@@ -409,11 +409,11 @@ def detect_quiet_accumulation(
     whale_count: int,
     cfg: VolumeTierConfig
 ) -> bool:
-    """
+    
     Detects low-volume, low-volatility compression
     that often precedes expansion.
     NOT a trade signal.
-    """
+    
 
     # Avoid aggressive phases
     if whale_count >= 2:
@@ -434,10 +434,10 @@ def detect_quiet_accumulation(
     return True
 
 def whale_flags(df: pd.DataFrame, cfg: WhaleFlagConfig) -> Dict[str, bool]:
-    """
+    
     Returns whale activity flags.
     These are heuristics designed for paper testing.
-    """
+    
     rvol_val = relative_volume(df)
 
     # ATR fall check
@@ -536,10 +536,10 @@ def position_size(bankroll: float, risk_per_trade: float, entry: float, stop: fl
 
 
 def atr_stop_suggestion(df: pd.DataFrame, entry: float, direction: str, risk_cfg: RiskConfig) -> float:
-    """
+    
     Suggests a stop based on ATR.
     direction: 'Bullish' or 'Bearish'
-    """
+    
     a = atr(df, period=risk_cfg.atr_period).iloc[-1]
     if pd.isna(a) or a <= 0:
         return entry  # can't compute
@@ -573,11 +573,11 @@ def score_setup(
     vol_cfg: VolumeTierConfig,
     risk_cfg: RiskConfig
 ) -> Tuple[int, str]:
-    """
+    
     Produces a numeric score and a decision string.
     This keeps the classic "score/skip" style from your earlier tools,
     but now volume is tiered instead of vetoing.
-    """
+    
     score = 0
 
     if trend == "Bullish":
@@ -663,12 +663,12 @@ def evaluate_symbol(
     stop: float,
     target: float,
 ) -> Dict[str, object]:
-    """
+    
 def evaluate_symbol(...):
-    """
+    
     # Full evaluation for a symbol with entry/stop/target.
 
-    """
+    
     df = provider.fetch_ohlcv(
         symbol,
         timeframe=tool_cfg.timeframe,
@@ -753,10 +753,10 @@ def evaluate_symbol(...):
 
 
 def scout_symbol_quick(provider: BaseProvider, symbol: str, tool_cfg: ToolConfig) -> Dict[str, object]:
-    """
+    
     # Scout mode: tier + whale + trend without entry/stop/target.
 
-    """
+    
     df = provider.fetch_ohlcv(symbol, timeframe=tool_cfg.timeframe, limit=tool_cfg.candles)
     tr = trend_state(df)
     vol_state, atr_pct = volatility_state(df, period=tool_cfg.risk.atr_period)
@@ -799,11 +799,11 @@ def should_run_scout(now: datetime, cfg: ScoutScheduleConfig, last_run: Optional
 
 
 def run_auto_scout_loop(tool_cfg: ToolConfig) -> None:
-    """
+    
     # Runs forever (worker mode). Every hour on the hour, during schedule window, scans watchlist.
 
     #This is how you run it on Railway as a WORKER service too.
-    """
+    
     provider = build_provider(tool_cfg.market)
 
     print("[AUTO] Auto-scout loop started.")
@@ -930,9 +930,9 @@ def print_config(tool_cfg: ToolConfig) -> None:
 
 
 def cli_main(tool_cfg: ToolConfig) -> None:
-    """
+    
     #Classic CLI main loop.
-    """
+    
     while True:
         print("\n" + "=" * 72)
         print("TRADE EVALUATOR TOOL — REBUILD (Original-Style + Enhancements)")
@@ -1073,7 +1073,7 @@ def build_flask_app(tool_cfg: ToolConfig):
 # ============================================================
 # RAILWAY NOTES (IMPORTANT)
 # ============================================================
-"""
+
 #Railway has two typical service styles:
 #1) Web service (expects a port to be bound)
 #2) Worker service (background loop / job)
@@ -1094,7 +1094,7 @@ def build_flask_app(tool_cfg: ToolConfig):
 
 #If you tried to deploy CLI to a web service, it appears "online" but you see nothing.
 #So you must choose server or worker mode.
-"""
+
 
 
 # ============================================================
