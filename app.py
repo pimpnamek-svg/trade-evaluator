@@ -1,85 +1,116 @@
-def create_app():
-    app = Flask(__name__)
-    tool_cfg = ToolConfig()
-    
-    @app.route("/", methods=["GET"])
-    def home():
-        import requests
-        import time
-        
-        def get_live_price(symbol):
-            try:
-                url = f"https://api.coingecko.com/api/v3/simple/price?ids={symbol.lower()}&vs_currencies=usd"
-                resp = requests.get(url, timeout=5).json()
-                return resp[symbol.lower()]['usd']
-            except:
-                defaults = {'BTC': 95000, 'ETH': 3800, 'SOL': 220}
-                return defaults.get(symbol, 95000)
-        
-        action = request.args.get("action", "scan")
-        
-        if action == "scan":
-            symbols = ["BTC", "ETH", "SOL"]
-            results = []
-            
-            for symbol in symbols:
-                try:
-                    live_price = get_live_price(symbol)
-                    test_entry = live_price * 0.995
-                    test_stop = test_entry * 0.97
-                    test_target = test_entry * 1.10
-                    
-                    provider.refresh_data()
-                    time.sleep(0.1)
-                    
-                    result = evaluate_symbol(provider, symbol, tool_cfg, test_entry, test_stop, test_target)
-                    
-                    results.append({
-                        "symbol": symbol,
-                        "live_price": live_price,
-                        "suggested_entry": test_entry,
-                        "signal": result['signal'],
-                        "score": result['score'],
-                        "rsi": result['rsi']
-                    })
-                except:
-                    pass
-            
-            top_signals = [r for r in results if r['score'] > 60]
-            
-            if top_signals:
-                html_results = ""
-                for r in top_signals:
-                    html_results += f'<div style="background:#333;padding:15px;margin:10px;border-radius:10px"><strong>{r["symbol"]}</strong> ${r["live_price"]:,.0f} → Entry ${r["suggested_entry"]:,.0f} <strong>{r["signal"]} ({r["score"]}/100)</strong> RSI:{r["rsi"]:.0f}</div>'
-            else:
-                html_results = '<p>No strong signals right now...</p>'
-            
-            return f"""
-            <html><body style='font-family:Arial;background:#1a1a1a;color:white;padding:50px;max-width:800px;margin:auto'>
-                <h1>🚀 WHALE ENTRY SCANNER</h1>
-                <h2>Live signals (Score > 60)</h2>
-                {html_results}
-                <form method="GET"><input type="hidden" name="action" value="scan"><button style="padding:20px 50px;background:#4CAF50;color:white;border:none;font-size:20px;border-radius:10px">SCAN ➡️</button></form>
-            </body></html>
-            """
-        
-        return f"""
-        <html><body style='font-family:Arial;background:#1a1a1a;color:white;padding:50px;max-width:600px;margin:auto'>
-            <h1>🚀 CASH REGISTER</h1>
-            <form method="GET"><input type="hidden" name="action" value="scan"><button style="padding:20px 50px;background:#4CAF50;color:white;border:none;font-size:20px;border-radius:10px">FIND ENTRIES ➡️</button></form>
-        </body></html>
-        """
-    
-    return app, tool_cfg
+import requests
+import time
+from flask import Flask, request, jsonify
+
+OKX_BASE = "https://www.okx.com"
+
+# -------------------------
+# OKX DATA PROVIDER
+# -------------------------
+class OKXProvider:
+    def normalize_symbol(self, symbol: str) -> str:
+        return f"{symbol}-USDT"
+
+    def get_current_price(self, symbol: str) -> float:
+        inst = self.normalize_symbol(symbol)
+        url = f"{OKX_BASE}/api/v5/market/ticker"
+        r = requests.get(url, params={"instId": inst}, timeout=5).json()
+        return float(r["data"][0]["last"])
+
+    def get_closes_and_volume(self, symbol: str, limit=200):
+        inst = self.normalize_symbol(symbol)
+        url = f"{OKX_BASE}/api/v5/market/candles"
+        r = requests.get(url, params={
+            "instId": inst,
+            "bar": "1H",
+            "limit": limit
+        }, timeout=5).json()
+
+        closes = [float(c[4]) for c in r["data"]][::-1]
+        volumes = [float(c[5]) for c in r["data"]][::-1]
+        return closes, volumes
 
 
+provider = OKXProvider()
 
-        
+# -------------------------
+# INDICATORS
+# -------------------------
+def ema(prices, period):
+    k = 2 / (period + 1)
+    e = [prices[0]]
+    for p in prices[1:]:
+        e.append(p * k + e[-1] * (1 - k))
+    return e
 
+def rsi(prices, period=14):
+    gains, losses = [], []
+    for i in range(1, len(prices)):
+        d = prices[i] - prices[i - 1]
+        gains.append(max(d, 0))
+        losses.append(abs(min(d, 0)))
 
+    avg_gain = sum(gains[-period:]) / period
+    avg_loss = sum(losses[-period:]) / period or 1
+    rs = avg_gain / avg_loss
+    return 100 - (100 / (1 + rs))
 
-   
+# -------------------------
+# EVALUATOR
+# -------------------------
+def evaluate(symbol, entry, stop, target):
+    closes, volumes = provider.get_closes_and_volume(symbol)
+    price = provider.get_current_price(symbol)
 
+    ema_fast = ema(closes, 9)[-1]
+    ema_slow = ema(closes, 21)[-1]
+    rsi_val = rsi(closes)
 
-  
+    risk = abs(entry - stop)
+    reward = abs(target - entry)
+    rr = round(reward / risk, 2)
 
+    score = 0
+    if price > ema_fast: score += 20
+    if ema_fast > ema_slow: score += 20
+    if rsi_val < 30: score += 15
+    if rr >= 2: score += 25
+
+    signal = (
+        "STRONG BUY" if score >= 80 else
+        "BUY" if score >= 60 else
+        "HOLD"
+    )
+
+    return {
+        "symbol": f"{symbol}-USDT",
+        "current_price": round(price, 2),
+        "entry": entry,
+        "stop": stop,
+        "target": target,
+        "risk": round(risk, 2),
+        "reward": round(reward, 2),
+        "rr_ratio": rr,
+        "rsi": round(rsi_val, 1),
+        "ema_fast": round(ema_fast, 2),
+        "ema_slow": round(ema_slow, 2),
+        "score": score,
+        "signal": signal,
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+# -------------------------
+# FLASK APP
+# -------------------------
+app = Flask(__name__)
+
+@app.route("/eval")
+def eval_route():
+    symbol = request.args.get("symbol", "").upper()
+    entry = float(request.args.get("entry"))
+    stop = float(request.args.get("stop"))
+    target = float(request.args.get("target"))
+    return jsonify(evaluate(symbol, entry, stop, target))
+
+if __name__ == "__main__":
+    app.run(port=8080, debug=False)
