@@ -186,19 +186,35 @@ def detect_whale_activity(symbol: str, volumes: list, window: int, tool_cfg) -> 
     }
 
 def detect_quiet_accumulation(symbol: str, prices: list, volumes: list, tool_cfg) -> Dict[str, Any]:
-    if len(prices) < 24: return {"accumulation": False, "strength": 0}
+    if len(prices) < 24: 
+        return {"accumulation": False, "strength": 0}
+    
     start_price = prices[-24]
     end_price = prices[-1]
     price_change = (end_price - start_price) / start_price
+    price_change_pct = price_change * 100
     avg_volume = sum(volumes[-24:]) / 24
     low_volume_period = sum(1 for v in volumes[-12:] if v < avg_volume * 0.7)
+    
+    # Strength calculation
+    strength = min(100, abs(price_change * 1000) + low_volume_period * 5)
+    
+    # Default accumulation logic
     accumulation = price_change > tool_cfg.accumulation_threshold and low_volume_period >= 8
+    
+    # Accumulation triggers
+    if price_change_pct < 0.2:
+        accumulation = True
+    if low_volume_period >= 12 and strength > 55:
+        accumulation = True
+    
     return {
         "accumulation": accumulation,
-        "price_change_pct": round(price_change * 100, 2),
+        "price_change_pct": round(price_change_pct, 2),
         "low_volume_candles": low_volume_period,
-        "strength": min(100, abs(price_change * 1000) + low_volume_period * 5)
+        "strength": round(strength, 1)
     }
+
 
 def get_tier(score: float, tool_cfg) -> str:
     thresholds = tool_cfg.tier_thresholds
