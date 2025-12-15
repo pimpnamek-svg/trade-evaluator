@@ -17,20 +17,25 @@ class OKXProvider:
         r = requests.get(url, params={"instId": inst}, timeout=5).json()
         return float(r["data"][0]["last"])
 
-    def get_closes_and_volume(self, symbol: str, limit=200):
-        inst = self.normalize_symbol(symbol)
-        url = f"{OKX_BASE}/api/v5/market/candles"
-        r = requests.get(url, params={
-            "instId": inst,
-            "bar": "1H",
-            "limit": limit
-        }, timeout=5).json()
+    def get_candles(self, symbol: str, limit=200):
+    inst = self.normalize_symbol(symbol)
+    url = f"{OKX_BASE}/api/v5/market/candles"
+    r = requests.get(url, params={
+        "instId": inst,
+        "bar": "1H",
+        "limit": limit
+    }, timeout=5).json()
 
-        closes = [float(c[4]) for c in r["data"]][::-1]
-        volumes = [float(c[5]) for c in r["data"]][::-1]
-        return closes, volumes
+    data = r["data"][::-1]
 
+    closes = [float(c[4]) for c in data]
+    highs = [float(c[2]) for c in data]
+    lows = [float(c[3]) for c in data]
+    volumes = [float(c[5]) for c in data]
 
+    return closes, highs, lows, volumes
+
+       
 provider = OKXProvider()
 
 # -------------------------
@@ -58,46 +63,121 @@ def rsi(prices, period=14):
 # -------------------------
 # EVALUATOR
 # -------------------------
-def evaluate(symbol, entry, stop, target):
-    closes, volumes = provider.get_closes_and_volume(symbol)
-    price = provider.get_current_price(symbol)
 
+def atr(highs, lows, closes, period=14):
+    trs = []
+    for i in range(1, len(closes)):
+        tr = max(
+            highs[i] - lows[i],
+            abs(highs[i] - closes[i - 1]),
+            abs(lows[i] - closes[i - 1])
+        )
+        trs.append(tr)
+
+    return sum(trs[-period:]) / period
+
+
+def evaluate(symbol, entry, stop, target):
+    closes, highs, lows, volumes = provider.get_candles(symbol)
+    price = provider.get_current_price(symbol)
     ema_fast = ema(closes, 9)[-1]
     ema_slow = ema(closes, 21)[-1]
     rsi_val = rsi(closes)
+    atr_val = atr(highs, lows, closes)
 
+    # -------------------
+    # VALIDATOR GUARD
+    # -------------------
+    if abs(price - entry) / price > 0.05:
+        return {
+            "error": "Entry too far from current price",
+            "current_price": round(price, 2),
+            "suggested_entry": round(price, 2),
+            "suggested_stop": round(price - atr_val * 1.5, 2),
+            "suggested_target": round(price + atr_val * 3, 2),
+        }
+
+
+    # -------------------
+    # AUTO LEVEL ASSIST
+    # -------------------
+    suggested_entry = round(ema_fast, 2)
+    suggested_stop = round(suggested_entry - atr_val * 1.5, 2)
+    suggested_target = round(suggested_entry + atr_val * 3, 2)
+
+    # -------------------
+    # RISK / REWARD
+    # -------------------
     risk = abs(entry - stop)
     reward = abs(target - entry)
-    rr = round(reward / risk, 2)
+    rr = round(reward / risk, 2) if risk else 0
 
+    # -------------------
+    # SCORING LOGIC
+    # -------------------
     score = 0
-    if price > ema_fast: score += 20
-    if ema_fast > ema_slow: score += 20
-    if rsi_val < 30: score += 15
-    if rr >= 2: score += 25
 
-    signal = (
-        "STRONG BUY" if score >= 80 else
-        "BUY" if score >= 60 else
-        "HOLD"
-    )
+    bullish = ema_fast > ema_slow
+    bearish = ema_fast < ema_slow
+
+    if bullish and price > ema_fast:
+        score += 30
+    if bearish and price < ema_fast:
+        score -= 30
+
+    if rsi_val < 30:
+        score += 15
+    elif rsi_val > 70:
+        score -= 15
+
+    if rr >= 2:
+        score += 20
+
+    # -------------------
+    # SIGNAL
+    # -------------------
+    if score >= 60:
+        signal = "STRONG BUY"
+    elif score >= 40:
+        signal = "BUY"
+    elif score <= -60:
+        signal = "STRONG SELL"
+    elif score <= -40:
+        signal = "SELL"
+    else:
+        signal = "HOLD"
 
     return {
         "symbol": f"{symbol}-USDT",
         "current_price": round(price, 2),
+
+        # your inputs
         "entry": entry,
         "stop": stop,
         "target": target,
+
+        # assist
+        "suggested_entry": suggested_entry,
+        "suggested_stop": suggested_stop,
+        "suggested_target": suggested_target,
+
+        # indicators
+        "ema_fast": round(ema_fast, 2),
+        "ema_slow": round(ema_slow, 2),
+        "rsi": round(rsi_val, 1),
+        "atr": round(atr_val, 2),
+
+        # risk
         "risk": round(risk, 2),
         "reward": round(reward, 2),
         "rr_ratio": rr,
-        "rsi": round(rsi_val, 1),
-        "ema_fast": round(ema_fast, 2),
-        "ema_slow": round(ema_slow, 2),
+
+        # output
         "score": score,
         "signal": signal,
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
     }
+
 
 # -------------------------
 # FLASK APP
@@ -114,3 +194,4 @@ def eval_route():
 
 if __name__ == "__main__":
     app.run(port=8080, debug=False)
+
