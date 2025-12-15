@@ -344,8 +344,10 @@ if __name__ == "__main__":
         scout_thread = threading.Thread(target=auto_scout_loop, daemon=True)
         scout_thread.start()
         
+        # RAILWAY PORT BINDING - CRITICAL
         port = int(os.environ.get("PORT", 8080))
         app.run(host="0.0.0.0", port=port, debug=False)
+
 
 
         
