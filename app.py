@@ -327,6 +327,17 @@ def create_app():
         return jsonify({"alerts": list(alerts.alerts)})
     
     return app
+# GUNICORN GLOBAL APP (CRITICAL FOR RAILWAY)
+app = None
+
+def create_app():
+    global app  # Make app accessible to gunicorn
+    provider.tool_cfg = ToolConfig()
+    app = Flask(__name__)
+    
+    # ... rest of your create_app() code stays the same ...
+    
+    return app
 
 if __name__ == "__main__":
     provider.tool_cfg = ToolConfig()
