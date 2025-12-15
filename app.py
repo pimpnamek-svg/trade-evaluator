@@ -289,6 +289,75 @@ def cli_main(tool_cfg: ToolConfig):
 # ============================================================
 # RAILWAY ENTRY POINT
 # ============================================================
+def create_app():
+    app = Flask(__name__)
+    tool_cfg = ToolConfig()
+    
+    @app.route("/", methods=["GET"])
+    def home():
+        import requests
+        
+        def get_live_price(symbol):
+            try:
+                url = f"https://api.coingecko.com/api/v3/simple/price?ids={symbol.lower()}&vs_currencies=usd"
+                resp = requests.get(url, timeout=5).json()
+                return resp[symbol.lower()]['usd']
+            except:
+                defaults = {'BTC': 42500, 'ETH': 3500, 'SOL': 135, 'SPY': 500, 'QQQ': 450}
+                return defaults.get(symbol, 42500)
+        
+        symbol = request.args.get("symbol", "BTC").upper().strip()
+        
+        if symbol:
+            try:
+                live_price = get_live_price(symbol)
+                entry = float(request.args.get("entry", live_price))
+                stop_pct = float(request.args.get("stop_pct", 3)) / 100
+                target_pct = float(request.args.get("target_pct", 8)) / 100
+                stop = float(request.args.get("stop", entry * (1 - stop_pct)))
+                target = float(request.args.get("target", entry * (1 + target_pct)))
+                
+                result = evaluate_symbol(provider, symbol, tool_cfg, entry, stop, target)
+                
+                return f"""
+                <html>
+                <body style='font-family:Arial;background:#1a1a1a;color:white;padding:50px;max-width:700px;margin:auto'>
+                    <h1>🚀 LIVE TRADE EVALUATOR</h1>
+                    <h2 style='color:#4CAF50'>{symbol} → <strong>{result['signal']}</strong> (Score: {result['score']}/100)</h2>
+                    <div style='background:#333;padding:20px;border-radius:10px'>
+                        <p><strong>Live Price:</strong> ${live_price:,.0f} | <strong>Entry:</strong> ${entry:,.0f}</p>
+                        <p><strong>Stop:</strong> ${stop:,.0f} | <strong>Target:</strong> ${target:,.0f} | <strong>R/R:</strong> {result['rr_ratio']}x</p>
+                        <p><strong>RSI:</strong> {result['rsi']} | <strong>Accumulation:</strong> {result['accumulation']['accumulation']}</p>
+                    </div>
+                    
+                    <h3>🔄 New Analysis:</h3>
+                    <form method="GET">
+                        Ticker: <input name="symbol" value="{symbol}" style="padding:10px;width:100px"><br><br>
+                        Entry: <input name="entry" value="{entry:,.0f}" style="padding:10px;width:100px">
+                        Stop %: <input name="stop_pct" value="{stop_pct*100:.0f}" style="padding:10px;width:80px">%
+                        Target %: <input name="target_pct" value="{target_pct*100:.0f}" style="padding:10px;width:80px">%<br><br>
+                        <button style="padding:15px 40px;background:#4CAF50;color:white;border:none;font-size:18px">EVALUATE ➡️</button>
+                    </form>
+                </body>
+                </html>
+                """
+            except Exception as e:
+                pass
+        
+        return f"""
+        <html><body style='font-family:Arial;background:#1a1a1a;color:white;padding:50px;max-width:600px;margin:auto'>
+            <h1>🚀 CASH REGISTER - LIVE PRICES</h1>
+            <form method="GET">
+                Ticker: <input name="symbol" value="BTC" style="padding:10px;width:100px"><br><br>
+                Stop % below entry: <input name="stop_pct" value="3" style="padding:10px;width:80px">%
+                Target % above entry: <input name="target_pct" value="8" style="padding:10px;width:80px">%<br><br>
+                <button style="padding:20px 50px;background:#4CAF50;color:white;border:none;font-size:20px">GET LIVE ANALYSIS ➡️</button>
+            </form>
+        </body></html>
+        """
+    
+    return app, tool_cfg
+
 if __name__ == "__main__":
     tool_cfg = ToolConfig()
     run_mode = os.environ.get("RUN_MODE", "server").lower()
