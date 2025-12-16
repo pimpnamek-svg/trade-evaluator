@@ -1,0 +1,4 @@
+your-folder/
+├── app.py
+└── templates/
+    └── index.html  ← Create this file
