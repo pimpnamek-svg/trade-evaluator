@@ -160,13 +160,59 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return {
-        "status": "OK", 
-        "endpoints": [
-            "/eval?symbol=BTC&entry=87000&stop=86000&target=89000"
-        ]
-    }
-
+    return '''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🚀 Trading Signal Analyzer</title>
+    <style>
+        body { font-family: Arial; max-width: 800px; margin: 50px auto; padding: 20px; }
+        input[type="text"] { width: 200px; padding: 10px; font-size: 18px; }
+        input[type="number"] { width: 150px; padding: 10px; }
+        button { padding: 12px 30px; background: #007bff; color: white; border: none; font-size: 16px; cursor: pointer; }
+        .result { margin-top: 30px; padding: 20px; border: 2px solid #ddd; border-radius: 10px; background: #f9f9f9; }
+        .signal { font-size: 24px; font-weight: bold; padding: 15px; border-radius: 8px; text-align: center; }
+        .buy { background: #d4edda; color: #155724; }
+        .sell { background: #f8d7da; color: #721c24; }
+        .hold { background: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Trading Signal Analyzer</h1>
+    
+    <form method="GET" action="/analyze">
+        <div style="margin: 20px 0;">
+            <label>Symbol: </label>
+            <input type="text" name="symbol" value="BTC" placeholder="BTC, ETH, SOL">
+            <label style="margin-left: 20px;">Entry: $</label>
+            <input type="number" name="entry" value="87000" step="0.01">
+            <label style="margin-left: 20px;">Stop: $</label>
+            <input type="number" name="stop" value="86000" step="0.01">
+            <label style="margin-left: 20px;">Target: $</label>
+            <input type="number" name="target" value="89000" step="0.01">
+            <button type="submit" style="margin-left: 20px;">Analyze Trade ➡️</button>
+        </div>
+    </form>
+''' + ('''
+    <div class="result">
+        <h2>📊 Analysis Results</h2>
+        <div class="signal ''' + result.get('signal', '').lower() + '''">
+            Signal: ''' + result.get('signal', 'N/A') + '''
+        </div>
+        <p><strong>Symbol:</strong> ''' + result.get('symbol', 'N/A') + '''</p>
+        <p><strong>Current Price:</strong> $''' + str(round(result.get('current_price', 0), 2)) + '''</p>
+        <p><strong>Suggested Entry:</strong> $''' + str(round(result.get('suggested_entry', 0), 2)) + '''</p>
+        <p><strong>Suggested Stop:</strong> $''' + str(round(result.get('suggested_stop', 0), 2)) + '''</p>
+        <p><strong>Suggested Target:</strong> $''' + str(round(result.get('suggested_target', 0), 2)) + '''</p>
+        <p><strong>Score:</strong> ''' + str(result.get('score', 0)) + '''/100</p>
+        <p><strong>Risk/Reward:</strong> ''' + str(result.get('rr', 0)) + ''':1</p>
+        <p><strong>RSI:</strong> ''' + str(round(result.get('rsi', 0), 1)) + '''</p>
+        <p><strong>Timestamp:</strong> ''' + result.get('timestamp', 'N/A') + '''</p>
+    </div>
+''' if 'result' in locals() else '') + '''
+</body>
+</html>
+'''
 
 @app.route("/eval")
 
