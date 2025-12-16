@@ -159,54 +159,30 @@ def evaluate(symbol, entry, stop, target):
 app = Flask(__name__)
 
 @app.route('/')
-def home(result=None, form_symbol="BTC", form_entry=87000, form_stop=86000, form_target=89000):
-    html = '''
+def home():
+    symbol = request.args.get("symbol", "BTC")
+    if symbol:
+        # Show results from /eval
+        try:
+            import requests
+            r = requests.get(f"http://localhost:8080/eval?symbol={symbol}")
+            result = r.json() if r.status_code == 200 else {"error": "API failed"}
+        except:
+            result = {"error": "Local API not running"}
+    else:
+        result = None
+        
+    return f'''
 <!DOCTYPE html>
-<html><head><title>Trading Signals</title>
-<style>body{font-family:Arial;padding:50px;max-width:800px;margin:auto;}
-input{padding:12px;margin:5px;font-size:16px;}
-button{padding:15px 25px;background:#007bff;color:white;border:none;font-size:16px;cursor:pointer;}
-.result{margin-top:30px;padding:25px;border:2px solid #ddd;border-radius:10px;background:#f9f9f9;}
-.signal{font-size:24px;font-weight:bold;padding:20px;border-radius:8px;text-align:center;margin:15px 0;}
-.buy{background:#d4edda;color:#155724;}
-.sell{background:#f8d7da;color:#721c24;}
-.hold{background:#fff3cd;color:#856404;}
-.error{background:#f8d7da;color:#721c24;}
-</style></head><body>
-<h1>🚀 Crypto Trading Signals</h1>
-<form method="GET" action="/analyze">
-Symbol: <input name="symbol" value="''' + form_symbol + '''" style="width:150px;"><br><br>
-Entry: $<input name="entry" value="''' + str(form_entry) + '''" type="number" step="0.01" style="width:150px;">
-Stop: $<input name="stop" value="''' + str(form_stop) + '''" type="number" step="0.01" style="width:150px;"><br><br>
-Target: $<input name="target" value="''' + str(form_target) + '''" type="number" step="0.01" style="width:150px;"><br><br>
-<button type="submit">Analyze Trade ➡️</button>
+<html><body style="font-family:Arial;padding:50px;">
+<h1>🚀 Trading Signals</h1>
+<form method="GET">
+Symbol: <input name="symbol" value="{symbol or 'BTC'}" style="padding:10px;width:150px;"><br><br>
+<button style="padding:12px 24px;background:#007bff;color:white;border:none;font-size:16px;">Analyze</button>
 </form>
+{"<h2>Results:</h2><pre>" + str(result) + "</pre>" if result else ""}
+</body></html>
 '''
-    
-    if result:
-        html += f'''
-<div class="result">
-<h2>📊 Analysis Results</h2>
-<div class="signal {result.get("signal", "hold").lower()}">
-Signal: {result.get("signal", "N/A")}
-</div>
-<p><strong>Symbol:</strong> {result.get("symbol", "N/A")}</p>
-<p><strong>Current Price:</strong> ${round(result.get("current_price", 0), 2)}</p>
-<p><strong>Suggested Entry:</strong> ${round(result.get("suggested_entry", 0), 2)}</p>
-<p><strong>Suggested Stop:</strong> ${round(result.get("suggested_stop", 0), 2)}</p>
-<p><strong>Suggested Target:</strong> ${round(result.get("suggested_target", 0), 2)}</p>
-<p><strong>Score:</strong> {result.get("score", 0)}/100</p>
-<p><strong>Risk/Reward:</strong> {result.get("rr", 0)}:1</p>
-<p><strong>RSI:</strong> {round(result.get("rsi", 0), 1)}</p>
-<p><strong>Timestamp:</strong> {result.get("timestamp", "N/A")}</p>
-'''
-        if result.get('error'):
-            html += f'<p style="color:red;"><strong>Error:</strong> {result["error"]}</p>'
-        html += '</div>'
-    
-    html += '</body></html>'
-    return html
-
 
 
 @app.route("/eval")
