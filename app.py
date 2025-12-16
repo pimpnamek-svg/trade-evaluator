@@ -158,7 +158,12 @@ def evaluate(symbol, entry, stop, target):
 # Flask app (outside evaluate function)
 app = Flask(__name__)
 
+@app.route('/')
+def home():
+    return {"status": "OK", "endpoints": ["/eval?symbol=BTC&entry=100000&stop=95000&target=105000"]}
+    
 @app.route("/eval")
+
 def eval_route():
     try:
         symbol = request.args.get("symbol", "BTC").upper()
