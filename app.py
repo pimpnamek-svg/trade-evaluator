@@ -159,60 +159,53 @@ def evaluate(symbol, entry, stop, target):
 app = Flask(__name__)
 
 @app.route('/')
-def home():
-    return '''
+def home(result=None):
+    html = '''
 <!DOCTYPE html>
-<html>
-<head>
-    <title>🚀 Trading Signal Analyzer</title>
-    <style>
-        body { font-family: Arial; max-width: 800px; margin: 50px auto; padding: 20px; }
-        input[type="text"] { width: 200px; padding: 10px; font-size: 18px; }
-        input[type="number"] { width: 150px; padding: 10px; }
-        button { padding: 12px 30px; background: #007bff; color: white; border: none; font-size: 16px; cursor: pointer; }
-        .result { margin-top: 30px; padding: 20px; border: 2px solid #ddd; border-radius: 10px; background: #f9f9f9; }
-        .signal { font-size: 24px; font-weight: bold; padding: 15px; border-radius: 8px; text-align: center; }
-        .buy { background: #d4edda; color: #155724; }
-        .sell { background: #f8d7da; color: #721c24; }
-        .hold { background: #fff3cd; color: #856404; }
-    </style>
-</head>
-<body>
-    <h1>🚀 Trading Signal Analyzer</h1>
-    
-    <form method="GET" action="/analyze">
-        <div style="margin: 20px 0;">
-            <label>Symbol: </label>
-            <input type="text" name="symbol" value="BTC" placeholder="BTC, ETH, SOL">
-            <label style="margin-left: 20px;">Entry: $</label>
-            <input type="number" name="entry" value="87000" step="0.01">
-            <label style="margin-left: 20px;">Stop: $</label>
-            <input type="number" name="stop" value="86000" step="0.01">
-            <label style="margin-left: 20px;">Target: $</label>
-            <input type="number" name="target" value="89000" step="0.01">
-            <button type="submit" style="margin-left: 20px;">Analyze Trade ➡️</button>
-        </div>
-    </form>
-''' + ('''
-    <div class="result">
-        <h2>📊 Analysis Results</h2>
-        <div class="signal ''' + result.get('signal', '').lower() + '''">
-            Signal: ''' + result.get('signal', 'N/A') + '''
-        </div>
-        <p><strong>Symbol:</strong> ''' + result.get('symbol', 'N/A') + '''</p>
-        <p><strong>Current Price:</strong> $''' + str(round(result.get('current_price', 0), 2)) + '''</p>
-        <p><strong>Suggested Entry:</strong> $''' + str(round(result.get('suggested_entry', 0), 2)) + '''</p>
-        <p><strong>Suggested Stop:</strong> $''' + str(round(result.get('suggested_stop', 0), 2)) + '''</p>
-        <p><strong>Suggested Target:</strong> $''' + str(round(result.get('suggested_target', 0), 2)) + '''</p>
-        <p><strong>Score:</strong> ''' + str(result.get('score', 0)) + '''/100</p>
-        <p><strong>Risk/Reward:</strong> ''' + str(result.get('rr', 0)) + ''':1</p>
-        <p><strong>RSI:</strong> ''' + str(round(result.get('rsi', 0), 1)) + '''</p>
-        <p><strong>Timestamp:</strong> ''' + result.get('timestamp', 'N/A') + '''</p>
-    </div>
-''' if 'result' in locals() else '') + '''
-</body>
-</html>
+<html><head><title>Trading Signals</title>
+<style>body{font-family:Arial;padding:50px;max-width:800px;margin:auto;}
+input{padding:12px;margin:5px;font-size:16px;}
+button{padding:15px 25px;background:#007bff;color:white;border:none;font-size:16px;cursor:pointer;}
+.result{margin-top:30px;padding:25px;border:2px solid #ddd;border-radius:10px;background:#f9f9f9;}
+.signal{font-size:24px;font-weight:bold;padding:20px;border-radius:8px;text-align:center;margin:15px 0;}
+.buy{background:#d4edda;color:#155724;}
+.sell{background:#f8d7da;color:#721c24;}
+.hold{background:#fff3cd;color:#856404;}
+.error{background:#f8d7da;color:#721c24;}
+</style></head><body>
+<h1>🚀 Crypto Trading Signals</h1>
+<form method="GET" action="/analyze">
+Symbol: <input name="symbol" value="BTC" style="width:150px;"><br><br>
+Entry: $<input name="entry" value="87000" type="number" step="0.01" style="width:150px;">
+Stop: $<input name="stop" value="86000" type="number" step="0.01" style="width:150px;"><br><br>
+Target: $<input name="target" value="89000" type="number" step="0.01" style="width:150px;"><br><br>
+<button type="submit">Analyze Trade ➡️</button>
+</form>
 '''
+
+    if result:
+        html += f'''
+<div class="result">
+<h2>📊 Analysis Results</h2>
+<div class="signal {result.get('signal', 'hold').lower()}">
+Signal: {result.get('signal', 'N/A')}
+</div>
+<p><strong>Symbol:</strong> {result.get('symbol', 'N/A')}</p>
+<p><strong>Current Price:</strong> ${round(result.get('current_price', 0), 2)}</p>
+<p><strong>Suggested Entry:</strong> ${round(result.get('suggested_entry', 0), 2)}</p>
+<p><strong>Suggested Stop:</strong> ${round(result.get('suggested_stop', 0), 2)}</p>
+<p><strong>Suggested Target:</strong> ${round(result.get('suggested_target', 0), 2)}</p>
+<p><strong>Score:</strong> {result.get('score', 0)}/100</p>
+<p><strong>Risk/Reward:</strong> {result.get('rr', 0)}:1</p>
+<p><strong>RSI:</strong> {round(result.get('rsi', 0), 1)}</p>
+<p><strong>Timestamp:</strong> {result.get('timestamp', 'N/A')}</p>
+{ '<p style="color:red;"><strong>Error:</strong> ' + result.get('error', '') + '</p>' if result.get('error') else '' }
+</div>
+'''
+    
+    html += '</body></html>'
+    return html
+
 
 @app.route("/eval")
 
@@ -230,13 +223,37 @@ def eval_route():
 def analyze():
     try:
         symbol = request.args.get("symbol", "BTC").upper()
-        entry = float(request.args.get("entry", 0))
-        stop = float(request.args.get("stop", 0))
-        target = float(request.args.get("target", 0))
+        entry = float(request.args.get("entry", 87000))
+        stop = float(request.args.get("stop", 86000))
+        target = float(request.args.get("target", 89000))
+        
+        # Call evaluate with defaults if params invalid
         result = evaluate(symbol, entry, stop, target)
-        return render_template('index.html', result=result)
+        
+        # Ensure result has all keys
+        if 'error' not in result:
+            result.setdefault('signal', 'HOLD')
+            result.setdefault('score', 0)
+            result.setdefault('rsi', 50)
+            result.setdefault('rr', 0)
+        
+        return home(result=result)
+        
     except Exception as e:
-        return render_template('index.html', result={"error": str(e)})
+        return home(result={
+            'error': f"Error: {str(e)}",
+            'signal': 'ERROR',
+            'score': 0,
+            'rsi': 0,
+            'rr': 0,
+            'symbol': symbol,
+            'current_price': 0,
+            'suggested_entry': 0,
+            'suggested_stop': 0,
+            'suggested_target': 0,
+            'timestamp': 'N/A'
+        })
+
 
 import os
 
