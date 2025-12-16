@@ -216,15 +216,83 @@ if not result else f'''
 
 @app.route("/eval")
 
-def eval_route():
+def evaluate(symbol, entry, stop, target):
     try:
-        symbol = request.args.get("symbol", "BTC").upper()
-        entry = float(request.args.get("entry", 0))
-        stop = float(request.args.get("stop", 0))
-        target = float(request.args.get("target", 0))
-        return jsonify(evaluate(symbol, entry, stop, target))
+        closes, highs, lows, volumes = provider.get_candles(symbol, limit=100)
+        price = provider.get_current_price(symbol)
+        
+        # 1. SMA30 vs SMA50 (TREND)
+        sma30 = sum(closes[-30:]) / 30
+        sma50 = sum(closes[-50:]) / 50
+        bullish_trend = sma30 > sma50
+        bearish_trend = sma30 < sma50
+        
+        # 2. Volume ≥ 1.5× average (VOLUME SPIKE)
+        avg_volume = sum(volumes[-20:]) / 20
+        volume_spike = volumes[-1] >= avg_volume * 1.5
+        
+        # 3. RR ≥ 2:1
+        risk = abs(entry - stop)
+        reward = abs(target - entry)
+        rr_ratio = reward / risk if risk > 0 else 0
+        
+        # 4. Candle pattern at high-value level (EMA21 support/resistance)
+        ema21 = ema(closes, 21)[-1]
+        near_key_level = abs(price - ema21) / price < 0.01  # Within 1%
+        
+        # 5. Clear trend (not chop) - ADX-like (price above/below EMA21)
+        clear_trend = abs(price - ema21) / ema21 > 0.005  # 0.5% from EMA21
+        
+        # SCORING (0-100)
+        score = 0
+        
+        # Trend alignment (40 points)
+        if bullish_trend and price > ema21:
+            score += 40
+        elif bearish_trend and price < ema21:
+            score += 40
+            
+        # Volume confirmation (20 points)
+        if volume_spike:
+            score += 20
+            
+        # Key level (15 points)
+        if near_key_level:
+            score += 15
+            
+        # Clear trend (15 points)
+        if clear_trend:
+            score += 15
+            
+        # Risk/Reward (10 points)
+        if rr_ratio >= 2:
+            score += 10
+
+        # SIGNAL
+        if score >= 70:
+            signal = "🔥 TRADE (70% Setup)"
+        elif score >= 50:
+            signal = "✅ Good Setup"
+        else:
+            signal = "⏳ Wait"
+
+        return {
+            "symbol": f"{symbol}-USDT",
+            "current_price": price,
+            "sma30": round(sma30, 2),
+            "sma50": round(sma50, 2),
+            "trend": "BULLISH" if bullish_trend else "BEARISH" if bearish_trend else "CHOP",
+            "volume_spike": volume_spike,
+            "near_key_level": near_key_level,
+            "rr_ratio": round(rr_ratio, 2),
+            "score": score,
+            "signal": signal,
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+        }
+        
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        return {"error": str(e), "score": 0, "signal": "ERROR"}
+
         
 @app.route('/analyze')
 def analyze():
