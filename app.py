@@ -160,7 +160,13 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return render_template('index.html')  # Shows your beautiful form
+    return {
+        "status": "OK", 
+        "endpoints": [
+            "/eval?symbol=BTC&entry=87000&stop=86000&target=89000"
+        ]
+    }
+
 
 @app.route("/eval")
 
