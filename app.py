@@ -1,6 +1,6 @@
 import requests
 import time
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template  # Add render_template
 
 OKX_BASE = "https://www.okx.com"  # Keep this
 # But test these alternatives in get_candles/get_current_price:
@@ -160,8 +160,8 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return {"status": "OK", "endpoints": ["/eval?symbol=BTC&entry=100000&stop=95000&target=105000"]}
-    
+    return render_template('index.html')  # Shows your beautiful form
+
 @app.route("/eval")
 
 def eval_route():
@@ -173,6 +173,18 @@ def eval_route():
         return jsonify(evaluate(symbol, entry, stop, target))
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+        
+@app.route('/analyze')
+def analyze():
+    try:
+        symbol = request.args.get("symbol", "BTC").upper()
+        entry = float(request.args.get("entry", 0))
+        stop = float(request.args.get("stop", 0))
+        target = float(request.args.get("target", 0))
+        result = evaluate(symbol, entry, stop, target)
+        return render_template('index.html', result=result)
+    except Exception as e:
+        return render_template('index.html', result={"error": str(e)})
 
 import os
 
