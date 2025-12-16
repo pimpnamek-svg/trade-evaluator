@@ -10,49 +10,44 @@ OKX_BASE = "https://www.okx.com"  # Keep this
 
 class OKXProvider:
     def __init__(self):
-        self.bases = [
-            "https://aws.okx.com",
-            "https://www.okx.com",
-            "https://www.okx.com"
-        ]
+        self.bases = ["https://aws.okx.com", "https://www.okx.com"]
 
-    def _request(self, url, params):
+    def normalize_symbol(self, symbol: str) -> str:
+        return f"{symbol.upper()}-USDT"
+
+    def _request(self, endpoint, params):
+        import requests
         for base in self.bases:
             try:
-                full_url = f"{base}/api/v5{url}"
-                r = requests.get(full_url, params=params, timeout=5)
-                if r.status_code == 200:
-                    data = r.json()
-                    if data.get("code") == "0":
-                        return data
-            except:
+                url = f"{base}/api/v5{endpoint}"
+                r = requests.get(url, params=params, timeout=5)
+                r.raise_for_status()
+                data = r.json()
+                if data.get("code") == "0":
+                    return data
+            except Exception:
                 continue
-        raise Exception("All OKX endpoints unreachable")
+        raise Exception("All OKX endpoints failed")
 
-def get_current_price(self, symbol: str) -> float:
-    inst = self.normalize_symbol(symbol)
-    data = self._request("/market/ticker", {"instId": inst})
-    return float(data["data"][0]["last"])
+    def get_current_price(self, symbol: str) -> float:
+        data = self._request("/market/ticker", {
+            "instId": self.normalize_symbol(symbol)
+        })
+        return float(data["data"][0]["last"])
 
-def get_candles(self, symbol: str, limit=200):
-    inst = self.normalize_symbol(symbol)
-    bases = ["https://aws.okx.com", "https://www.okx.com"]
-    for base in bases:
-        try:
-            url = f"{base}/api/v5/market/candles"
-            r = requests.get(url, params={
-                "instId": inst,
-                "bar": "1H",
-                "limit": str(limit)
-            }, timeout=5).json()
-            
-            if r.get("code") == "0" and r.get("data"):
-                data = r["data"][::-1]
-                closes = [float(c[4]) for c in data]
-                highs = [float(c[2]) for c in data]
-                lows = [float(c[3]) for c in data]
-                volumes = [float(c[5]) for c in data]
-                return closes, highs, lows, volumes
+    def get_candles(self, symbol: str, limit=200):
+        data = self._request("/market/candles", {
+            "instId": self.normalize_symbol(symbol),
+            "bar": "1H",
+            "limit": str(limit),
+        })
+        candles = data["data"][::-1]
+        closes = [float(c[4]) for c in candles]
+        highs = [float(c[2]) for c in candles]
+        lows = [float(c[3]) for c in candles]
+        volumes = [float(c[5]) for c in candles]
+        return closes, highs, lows, volumes
+
                 
         except Exception:
             continue
