@@ -1,4 +1,4 @@
-your-folder/
+your-repo/
 ├── app.py
 └── templates/
     └── index.html  ← Create this file
