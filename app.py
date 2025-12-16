@@ -159,7 +159,7 @@ def evaluate(symbol, entry, stop, target):
 app = Flask(__name__)
 
 @app.route('/')
-def home(result=None):
+def home(result=None, form_symbol="BTC", form_entry=87000, form_stop=86000, form_target=89000):
     html = '''
 <!DOCTYPE html>
 <html><head><title>Trading Signals</title>
@@ -175,36 +175,38 @@ button{padding:15px 25px;background:#007bff;color:white;border:none;font-size:16
 </style></head><body>
 <h1>🚀 Crypto Trading Signals</h1>
 <form method="GET" action="/analyze">
-Symbol: <input name="symbol" value="BTC" style="width:150px;"><br><br>
-Entry: $<input name="entry" value="87000" type="number" step="0.01" style="width:150px;">
-Stop: $<input name="stop" value="86000" type="number" step="0.01" style="width:150px;"><br><br>
-Target: $<input name="target" value="89000" type="number" step="0.01" style="width:150px;"><br><br>
+Symbol: <input name="symbol" value="''' + form_symbol + '''" style="width:150px;"><br><br>
+Entry: $<input name="entry" value="''' + str(form_entry) + '''" type="number" step="0.01" style="width:150px;">
+Stop: $<input name="stop" value="''' + str(form_stop) + '''" type="number" step="0.01" style="width:150px;"><br><br>
+Target: $<input name="target" value="''' + str(form_target) + '''" type="number" step="0.01" style="width:150px;"><br><br>
 <button type="submit">Analyze Trade ➡️</button>
 </form>
 '''
-
+    
     if result:
         html += f'''
 <div class="result">
 <h2>📊 Analysis Results</h2>
-<div class="signal {result.get('signal', 'hold').lower()}">
-Signal: {result.get('signal', 'N/A')}
+<div class="signal {result.get("signal", "hold").lower()}">
+Signal: {result.get("signal", "N/A")}
 </div>
-<p><strong>Symbol:</strong> {result.get('symbol', 'N/A')}</p>
-<p><strong>Current Price:</strong> ${round(result.get('current_price', 0), 2)}</p>
-<p><strong>Suggested Entry:</strong> ${round(result.get('suggested_entry', 0), 2)}</p>
-<p><strong>Suggested Stop:</strong> ${round(result.get('suggested_stop', 0), 2)}</p>
-<p><strong>Suggested Target:</strong> ${round(result.get('suggested_target', 0), 2)}</p>
-<p><strong>Score:</strong> {result.get('score', 0)}/100</p>
-<p><strong>Risk/Reward:</strong> {result.get('rr', 0)}:1</p>
-<p><strong>RSI:</strong> {round(result.get('rsi', 0), 1)}</p>
-<p><strong>Timestamp:</strong> {result.get('timestamp', 'N/A')}</p>
-{ '<p style="color:red;"><strong>Error:</strong> ' + result.get('error', '') + '</p>' if result.get('error') else '' }
-</div>
+<p><strong>Symbol:</strong> {result.get("symbol", "N/A")}</p>
+<p><strong>Current Price:</strong> ${round(result.get("current_price", 0), 2)}</p>
+<p><strong>Suggested Entry:</strong> ${round(result.get("suggested_entry", 0), 2)}</p>
+<p><strong>Suggested Stop:</strong> ${round(result.get("suggested_stop", 0), 2)}</p>
+<p><strong>Suggested Target:</strong> ${round(result.get("suggested_target", 0), 2)}</p>
+<p><strong>Score:</strong> {result.get("score", 0)}/100</p>
+<p><strong>Risk/Reward:</strong> {result.get("rr", 0)}:1</p>
+<p><strong>RSI:</strong> {round(result.get("rsi", 0), 1)}</p>
+<p><strong>Timestamp:</strong> {result.get("timestamp", "N/A")}</p>
 '''
+        if result.get('error'):
+            html += f'<p style="color:red;"><strong>Error:</strong> {result["error"]}</p>'
+        html += '</div>'
     
     html += '</body></html>'
     return html
+
 
 
 @app.route("/eval")
@@ -227,17 +229,25 @@ def analyze():
         stop = float(request.args.get("stop", 86000))
         target = float(request.args.get("target", 89000))
         
-        # Call evaluate with defaults if params invalid
         result = evaluate(symbol, entry, stop, target)
         
-        # Ensure result has all keys
-        if 'error' not in result:
-            result.setdefault('signal', 'HOLD')
-            result.setdefault('score', 0)
-            result.setdefault('rsi', 50)
-            result.setdefault('rr', 0)
-        
-        return home(result=result)
+        # PASS FORM VALUES BACK TO FORM
+        return home(
+            result=result,
+            form_symbol=symbol,
+            form_entry=entry,
+            form_stop=stop,
+            form_target=target
+        )
+    except Exception as e:
+        return home(
+            result={'error': str(e)},
+            form_symbol=request.args.get("symbol", "BTC"),
+            form_entry=float(request.args.get("entry", 87000)),
+            form_stop=float(request.args.get("stop", 86000)),
+            form_target=float(request.args.get("target", 89000))
+        )
+
         
     except Exception as e:
         return home(result={
