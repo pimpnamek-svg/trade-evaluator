@@ -160,27 +160,56 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    symbol = request.args.get("symbol", "BTC")
+    symbol = request.args.get("symbol", "BTC").upper()
+    
     if symbol:
-        # Show results from /eval
         try:
-            import requests
-            r = requests.get(f"http://localhost:8080/eval?symbol={symbol}")
-            result = r.json() if r.status_code == 200 else {"error": "API failed"}
+            # Call your working /eval
+            import urllib.parse
+            eval_url = f"/eval?symbol={urllib.parse.quote(symbol)}"
+            # Simulate calling it (use your real logic here)
+            result = evaluate(symbol, 0, 0, 0)  # Your working function
         except:
-            result = {"error": "Local API not running"}
+            result = {"error": "Analysis failed"}
     else:
         result = None
         
     return f'''
 <!DOCTYPE html>
-<html><body style="font-family:Arial;padding:50px;">
-<h1>🚀 Trading Signals</h1>
+<html><head><title>Trading Signals</title>
+<style>
+body {{font-family:Arial;padding:50px;max-width:800px;margin:auto;}}
+input {{padding:12px;width:200px;font-size:18px;}}
+button {{padding:15px 30px;background:#28a745;color:white;border:none;font-size:18px;cursor:pointer;border-radius:5px;}}
+.result {{margin-top:30px;padding:30px;border:2px solid #007bff;border-radius:15px;background:#f8f9fa;}}
+.price {{font-size:24px;font-weight:bold;color:#007bff;margin:20px 0;}}
+.levels {{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:20px 0;}}
+.level {{padding:15px;background:white;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,0.1);}}
+</style>
+</head><body>
+<h1>🚀 Crypto Trading Analyzer</h1>
+
 <form method="GET">
-Symbol: <input name="symbol" value="{symbol or 'BTC'}" style="padding:10px;width:150px;"><br><br>
-<button style="padding:12px 24px;background:#007bff;color:white;border:none;font-size:16px;">Analyze</button>
+<label>Symbol: </label>
+<input name="symbol" value="{symbol}" placeholder="BTC, ETH, SOL, XRP">
+<button>Analyze ➡️</button>
 </form>
-{"<h2>Results:</h2><pre>" + str(result) + "</pre>" if result else ""}
+
+{""
+if not result else f'''
+<div class="result">
+<h2>📊 {symbol} Analysis</h2>
+<div class="price">Current Price: ${result.get("current_price", 0):.2f}</div>
+
+{"<p style='color:orange;font-size:18px;'>{result['error']}</p>" if result.get('error') else ""}
+
+<div class="levels">
+<div class="level"><strong>Suggested Entry</strong><br>${result.get("suggested_entry", 0):.2f}</div>
+<div class="level"><strong>Suggested Stop</strong><br>${result.get("suggested_stop", 0):.2f}</div>
+<div class="level"><strong>Suggested Target</strong><br>${result.get("suggested_target", 0):.2f}</div>
+</div>
+</div>
+'''}
 </body></html>
 '''
 
