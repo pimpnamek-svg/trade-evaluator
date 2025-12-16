@@ -221,49 +221,54 @@ def evaluate(symbol, entry, stop, target):
         closes, highs, lows, volumes = provider.get_candles(symbol)
         price = provider.get_current_price(symbol)
         
-        # YOUR ORIGINAL EMA/ATR/RSI (KEEPS WORKING)
         ema_fast = ema(closes, 9)[-1]
         ema_slow = ema(closes, 21)[-1]
         rsi_val = rsi(closes)
         atr_val = atr(highs, lows, closes)
         
-        # NEW 70% CRITERIA
+        # 70% criteria
         sma30 = sum(closes[-30:]) / 30
         sma50 = sum(closes[-50:]) / 50
         bullish_trend = sma30 > sma50
         avg_volume = sum(volumes[-20:]) / 20
         volume_spike = volumes[-1] >= avg_volume * 1.5
-        ema21 = ema(closes, 21)[-1]
-        near_key_level = abs(price - ema21) / price < 0.01
         
-        # YOUR ORIGINAL SAFETY + LEVELS
+        # Safety check
         if abs(price - entry) / price > 0.05:
             return {
                 "error": "Entry too far from current price",
                 "current_price": round(price, 2),
                 "suggested_entry": round(ema_fast, 2),
-                "suggested_stop": round(ema_fast - atr_val * 1.5, 2),
-                "suggested_target": round(ema_fast + atr_val * 3, 2),
-                "score": 0, "signal": "HOLD", "rsi": rsi_val
+                "suggested_stop": round(price - atr_val * 1.5, 2),
+                "suggested_target": round(price + atr_val * 3, 2),
+                "score": 0,
+                "rr": 0,
+                "rsi": round(rsi_val, 1),
+                "signal": "HOLD",
+                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
             }
         
-        # YOUR ORIGINAL SCORING + SIGNAL
+        # Risk/reward
         risk = abs(entry - stop)
         reward = abs(target - entry)
         rr = round(reward / risk, 2) if risk > 0 else 0
         
+        # FULL SCORING
         score = 0
-        if bullish_trend and price > ema_fast and volume_spike:
-            score += 70
-        elif sma30 < sma50 and price < ema_fast and volume_spike:
-            score += 70
-        elif rr >= 2:
+        if bullish_trend and price > ema_fast:
+            score += 30
+        if volume_spike:
             score += 20
-        if rsi_val < 30 or rsi_val > 70:
-            score += 10
+        if rr >= 2:
+            score += 20
+        if 30 <= rsi_val <= 70:
+            score += 15
+        if abs(price - ema_slow) / price < 0.02:  # Near EMA21
+            score += 15
             
-        signal = "🔥 TRADE" if score >= 70 else "✅ BUY" if score >= 50 else "HOLD"
+        signal = "🔥 STRONG BUY" if score >= 70 else "✅ BUY" if score >= 50 else "HOLD"
         
+        # **RETURN ALL FIELDS YOUR DISPLAY EXPECTS**
         return {
             "symbol": f"{symbol}-USDT",
             "current_price": round(price, 2),
@@ -278,8 +283,20 @@ def evaluate(symbol, entry, stop, target):
             "signal": signal,
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
         }
+        
     except Exception as e:
-        return {"error": str(e)}
+        return {
+            "error": str(e),
+            "current_price": 0,
+            "suggested_entry": 0,
+            "suggested_stop": 0,
+            "suggested_target": 0,
+            "score": 0,
+            "rr": 0,
+            "rsi": 0,
+            "signal": "ERROR",
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+        }
 
         
 @app.route('/analyze')
