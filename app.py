@@ -48,12 +48,6 @@ class OKXProvider:
         volumes = [float(c[5]) for c in candles]
         return closes, highs, lows, volumes
 
-                
-        except Exception:
-            continue
-    
-    raise Exception(f"Failed to fetch candles for {inst}")
-
 
 provider = OKXProvider()
 
