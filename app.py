@@ -2,7 +2,7 @@ import requests
 import time
 import os
 from flask import Flask, request, jsonify
-from core.risk_engine import atr_risk_engine
+from risk_engine import atr_risk_engine
 from api import api_bp
 
 app = Flask(__name__)
