@@ -1,32 +1,35 @@
 import requests
 import time
 import os
-from flask import Flask, request
-from fastapi import FastAPI
-from risk_engine import atr_risk_engine
+from flask import Flask, request, jsonify
+from core.risk_engine import atr_risk_engine
 
-app = FastAPI()
+app = Flask(__name__)
 
-@app.get("/evaluate_trade")
-def evaluate_trade(
-    atr: float,
-    volatility_mode: str = "normal"
-):
-    decision = atr_risk_engine(
-        atr=atr,
-        volatility_mode=volatility_mode
-    )
+@app.route("/evaluate_trade", methods=["GET"])
+def evaluate_trade():
+    atr = float(request.args.get("atr"))
+    volatility_mode = request.args.get("volatility_mode", "normal")
 
-    return {
-        "allowed": decision.allowed,
-        "reason": decision.reason,
+    decision = atr_risk_engine(atr, volatility_mode)
+
+    if not decision.allowed:
+        return jsonify({
+            "status": "REJECTED",
+            "reason": decision.reason
+        })
+
+    return jsonify({
+        "status": "APPROVED",
         "stop_loss": decision.stop_loss,
         "tp1": decision.tp1,
         "tp2": decision.tp2,
-        "breakeven_at": decision.breakeven_at,
-    }
+        "breakeven_at": decision.breakeven_at
+    })
 
-app = Flask(__name__)
+if __name__ == "__main__":
+    app.run(debug=True)
+
 
 OKX_BASE = "https://www.okx.com"
 class OKXProvider:
