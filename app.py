@@ -2,6 +2,29 @@ import requests
 import time
 import os
 from flask import Flask, request
+from fastapi import FastAPI
+from risk_engine import atr_risk_engine
+
+app = FastAPI()
+
+@app.get("/evaluate_trade")
+def evaluate_trade(
+    atr: float,
+    volatility_mode: str = "normal"
+):
+    decision = atr_risk_engine(
+        atr=atr,
+        volatility_mode=volatility_mode
+    )
+
+    return {
+        "allowed": decision.allowed,
+        "reason": decision.reason,
+        "stop_loss": decision.stop_loss,
+        "tp1": decision.tp1,
+        "tp2": decision.tp2,
+        "breakeven_at": decision.breakeven_at,
+    }
 
 app = Flask(__name__)
 
