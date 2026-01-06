@@ -6,6 +6,7 @@ from core.risk_engine import atr_risk_engine
 from api import api_bp
 
 app = Flask(__name__)
+app.register_blueprint(api_bp)
 
 @app.route("/evaluate_trade", methods=["GET"])
 def evaluate_trade():
