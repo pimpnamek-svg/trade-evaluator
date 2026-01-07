@@ -7,6 +7,16 @@ from api import api_bp
 
 app = Flask(__name__)
 app.register_blueprint(api_bp)
+# shared state
+current_phase = "LOCKED"
+current_confidence = 40
+
+@app.route("/whale-status")
+def whale_status():
+    return jsonify({
+        "phase": current_phase,
+        "confidence": current_confidence
+    })
 
 @app.route("/evaluate_trade", methods=["GET"])
 def evaluate_trade():
